@@ -5,9 +5,9 @@
 [library]
 [library.AquaCrop]
 language = "fortran"
-library = "bmiaquacrop"
-# For Fortran, entry_point is the module name containing the BMI type
+library = "aquacropbmi"
 entry_point = "bmiaquacropf"
+register = "bmi_aquacrop"
 
 [build]
 undef_macros = []

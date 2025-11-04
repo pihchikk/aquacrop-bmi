@@ -13,7 +13,7 @@ program test_bmi_functions
     character(len=1024) :: project_file
     
     ! IMPORTANT: Change this to your actual project file path!
-    project_file = "project.PRO"
+    project_file = "test_bmi.PRO"
     
     print *, "========================================"
     print *, "BMI AquaCrop Function Test"

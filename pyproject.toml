@@ -1,0 +1,63 @@
+[project]
+name = "aquacrop-bmi"
+version = "0.1.0"
+description = "BMI wrapper for AquaCrop crop water productivity model"
+readme = "README.md"
+authors = [
+    { name = "pihchikk", email = "alperf97@gmail.com" }
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "numpy>=2,<3",
+    "bmipy>=2.0.1",
+    "httpx>=0.27",
+    "pydantic>=2.6,<3",
+    "pydantic-settings>=2.2,<3",
+    "agro-met-equations-dynalogic>=2.0",
+    "soiltexture>=1.0",
+    "pyyaml>=5.0",
+    "pyarrow>=20.0,<21",
+    "salib>=1.4,<2",
+]
+
+[build-system]
+requires = [
+    "hatchling~=1.27",
+    "pymake@git+https://github.com/linuxlizard/pymake",
+]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "hatchling~=1.27",
+    #mypy-gitlab-code-quality
+    #pymake
+
+]
+
+[tool.ruff]
+target-version = "py311"  # Change to match your requires-python
+line-length = 100
+show-fixes = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # Start simple, or use ["ALL"] with ignores
+ignore = [
+    # Add specific rules you want to ignore
+]
+
+[tool.ruff.lint.isort]
+known-local-folder = ["aquacrop_bmi"]  # Change to your package name
+
+[tool.hatch.build.targets.wheel]
+pure-python = false
+artifacts = ["aquacrop_bmi/wrapper/aquacrop*"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "build.py"
+
+[tool.uv.sources]
+pymake = { git = "https://github.com/linuxlizard/pymake" }

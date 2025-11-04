@@ -1,0 +1,184 @@
+from datetime import UTC, date, datetime
+from functools import lru_cache
+from io import StringIO
+from typing import TextIO
+
+import AgroMetEquations.auxiliary as agromet
+import httpx
+import numpy as np
+from AgroMetEquations.evapotranspiration_equations import fao56_penman_monteith
+
+from aquacrop_bmi.data import specs
+from aquacrop_bmi.settings import settings
+
+
+
+type CropData = tuple[str, tuple[str, ...], dict[str, int | float]]
+
+WeatherRecord = np.dtype([
+    ('tx', np.float64),
+    ('tn', np.float64),
+    ('pr', np.float64),
+    ('et0', np.float64),
+])
+
+AQUACROP_EPOCH = datetime(1900, 12, 31, tzinfo=UTC).replace(tzinfo=None).toordinal()
+
+WEATHER_PARAMS = (
+    'T2M', # t mean
+    'T2M_MIN', # t min
+    'T2M_MAX', # t max
+    'WS2M', # wind speed
+    'PS', # atmospheric pressure
+    'RH2M', # relative humidity
+    'ALLSKY_SFC_SW_DWN', # global radiation
+    'PRECTOTCORR', # precipitation
+)
+
+NASA_POWER_URL_TEMPLATE = (
+    'https://power.larc.nasa.gov/api/temporal/daily/point'
+    f'?parameters={",".join(WEATHER_PARAMS)}'
+    '&community=AG'
+    '&format=JSON'
+    '&longitude={longitude}&latitude={latitude}&start={start:%Y%m%d}&end={end:%Y%m%d}'
+)
+
+
+
+@lru_cache
+def get_elevation(lat: float, lon: float) -> float:
+    url = f'{settings.open_elevation_url}?locations={lat},{lon}'
+    return httpx.get(url).json()['results'][0]['elevation']
+
+
+
+@lru_cache
+def get_weather_data(
+    latitude: float,
+    longitude: float,
+    altitude: float,
+    start: date,
+    end: date,
+) -> np.recarray:
+    url = NASA_POWER_URL_TEMPLATE.format(
+        longitude=longitude,
+        latitude=latitude,
+        start=start,
+        end=end,
+    )
+
+    data = httpx.get(url, verify=True, timeout=30.00).json()['properties']['parameter']
+    return _calculate_et0_fao56(latitude, altitude, data)
+
+
+
+def ask_rosetta(
+    soildata: list[tuple[float, float, float]],
+) -> list[tuple[float, float, float, float, float]]:
+    res = httpx.post(str(settings.rosetta_url), json={'soildata': soildata})
+    return res.json()['van_genuchten_params']
+
+
+
+def elapse_date(dt: date) -> int:
+    return dt.toordinal() - AQUACROP_EPOCH
+
+
+
+def loads_crop_file(data: str) -> CropData:
+    index = []
+    params = {}
+    with StringIO(data) as rdr:
+        crop_name = next(rdr).strip()
+        for line in rdr:
+            line = line.strip()  # noqa: PLW2901
+            if line:
+                val, key = (p.strip() for p in line.split(':', 1))
+                index.append(key)
+                if key not in specs.CROP_IGNORED_PARAMS:
+                    params[key] = float(val) if '.' in val else int(val)
+    return crop_name, tuple(index), params
+
+
+
+def dump_crop_file(
+    writer: TextIO,
+    crop_index: tuple[str, ...],
+    crop_params: dict[str, int | float],
+    crop_name: str = 'Crop',
+) -> None:
+    writer.write(f'{crop_name}\n')
+    for key in crop_index:
+        val  = crop_params.get(key, -9)
+        dec = ''
+        if isinstance(val, float):
+            ndigs = specs.CROP_FIELD_NDIGITS.get(key, 2)
+            dec = f'.{ndigs}f'
+        writer.write(f'{val:<15{dec}}: {key}\n')
+
+
+
+def _calculate_et0_fao56(
+    latitude: float,
+    altitude: float,
+    data: dict[str, dict[str, float | int]],
+):
+    (
+        t2m, t2m_min, t2m_max, ws2m, ps, rh2m, allsky_sfc_sw_dwn, prectotcorr,
+    ) = (_normalize_weather_params(data[p]) for p in WEATHER_PARAMS)
+
+    latitude = np.radians(latitude)
+    date_keys = t2m.keys()
+    res = np.zeros(len(date_keys), dtype=WeatherRecord)
+
+    for ind, date_str in enumerate(date_keys):
+        t_mean = t2m[date_str]
+        t_min = t2m_min[date_str]
+        t_max = t2m_max[date_str]
+        wind_speed = ws2m[date_str]
+        atmo_press = ps[date_str]
+        rel_humidity = rh2m[date_str]
+        sol_rad = allsky_sfc_sw_dwn[date_str]
+        precip = prectotcorr[date_str]
+        doy = date.fromisoformat(date_str).timetuple().tm_yday
+        solar_dec = agromet.get_solar_declination(doy)
+        sunset_hour_angle = agromet.get_sunset_hour_angle(latitude, solar_dec)
+        inv_rel_dist_earth_sun = agromet.get_inverse_relative_distance_earth_sun(doy)
+        ext_rad = agromet.get_daily_extraterrestrial_radiation(
+            latitude, solar_dec, sunset_hour_angle, inv_rel_dist_earth_sun)
+        cs_rad = agromet.get_clear_sky_radiation(altitude, ext_rad)
+        svp_min = agromet.get_svp_from_temp(t_min)
+        svp_max = agromet.get_svp_from_temp(t_max)
+        svp = agromet.get_svp(svp_min, svp_max)
+        avp = agromet.get_avp_from_rhmean(svp_min, svp_max, rel_humidity)
+        temperature_kelvin_min = agromet.celsius2kelvin(t_min)
+        temperature_kelvin_max = agromet.celsius2kelvin(t_max)
+        net_out_lw_rad = agromet.get_net_out_lw_rad(
+            temperature_kelvin_min, temperature_kelvin_max, sol_rad, cs_rad, avp,
+            time_period='daily',
+        )
+        net_in_sol_rad = agromet.get_net_in_sol_rad(sol_rad)
+        daily_net_radiation = agromet.get_net_rad(net_in_sol_rad, net_out_lw_rad)
+        latent_heat = agromet.get_latent_heat(t_mean)
+        delta_svp = agromet.get_delta_svp(t_mean)
+        gamma = agromet.get_psy_const(atmo_press, latent_heat)
+        et0 = fao56_penman_monteith(
+            daily_net_radiation, t_mean, wind_speed, latent_heat, svp, avp, delta_svp, gamma,
+            sol_rad, time_period='daily',
+        )
+        res[ind] = (
+            t_min,
+            t_max,
+            precip if precip >= 1.0 else 0.0,
+            et0 if et0 > 0.0 else np.nan,
+        )
+
+    return res.view(np.recarray)
+
+
+
+def _normalize_weather_params(params: dict[str, int | float]):
+    return {
+        k: v if v != -999.0 else np.nan
+        for k, v in params.items()
+    }

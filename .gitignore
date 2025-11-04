@@ -1,0 +1,42 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Compiled Fortran files
+*.o
+*.mod
+*.so
+*.a
+
+# Executables
+test_bmi
+test_bmi_step6_7
+
+# Build directories
+build/
+dist/
+__pycache__/
+*.egg-info/
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Python virtual environments
+venv/
+.venv/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,8 @@
+project
+         7.1  : AquaCrop Version (August 2023)
+         0    : fixed date onset
+        -9    : start time window
+        -9    : length time window
+100           : onset day number (April 10 = day 100)
+        -9    : successive days
+        -9    : occurrences

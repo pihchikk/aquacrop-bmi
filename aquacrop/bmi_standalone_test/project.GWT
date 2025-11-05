@@ -1,6 +1,6 @@
 project
      7.1   : AquaCrop Version (August 2023)
-     1     : groundwater table at fixed depth and with constant salinity
+     1     : fixed depth, constant salinity
 
    Day    Depth (m)    ECw (dS/m)
 ====================================

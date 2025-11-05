@@ -1,0 +1,15 @@
+project
+    7.1   : AquaCrop Version (August 2023)
+   -9.00  : initial canopy cover (default)
+    0.000 : biomass (ton/ha)
+   -9.00  : initial rooting depth (default)
+    0.0   : water layer between bunds (mm)
+    0.00  : EC water layer (dS/m)
+    0     : soil water content for specific layers
+3         : number of layers
+
+Thickness (m)     WC (vol%)     ECe(dS/m)
+==========================================
+         0.30                30.00                  0.00
+         0.50                28.00                  0.00
+         1.20                26.00                  0.00

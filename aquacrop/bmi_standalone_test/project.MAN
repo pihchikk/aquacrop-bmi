@@ -1,0 +1,21 @@
+project
+     7.1       : AquaCrop Version (August 2023)
+     0         : mulches cover (%)
+    50         : mulch effect on evaporation (%)
+0              : fertility stress (%)
+     0.00      : bund height (m)
+     0         : surface runoff affected
+     0         : N/A
+     0         : weed cover at canopy closure (%)
+     0         : weed increase mid-season (%)
+   100.00      : CC expansion weed factor
+   100         : weed replacement of thinned CC (%)
+     0         : multiple cuttings
+    30         : CC after cutting (%)
+    20         : CGC increase after cutting (%)
+     1         : first day cutting window
+    -9         : days in cutting window
+    -9         : cutting timing
+     0         : time criterion
+     0         : final harvest at maturity
+    -9         : start growing cycle

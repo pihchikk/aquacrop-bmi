@@ -39,8 +39,6 @@ class AquacropProject:
         self.outp = root / 'OUTP'
         self.simul = root / 'SIMUL'
         
-        print(self.root)
-
         for dir_ in self.list, self.outp, self.simul:
             dir_.mkdir()
 

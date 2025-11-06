@@ -1,0 +1,13 @@
+AquaCrop 7.1 (August 2023) - Climate (project)
+       12.00  : AquaCrop Version (March 2017)
+    1  : Daily records (1 = daily, 2 = 10-daily, 3 = monthly)
+    1  : First day of simulation
+    4  : First month of simulation
+    2024  : First year of simulation (1901 if not linked)
+    2  : Source of temperature file (1 = *.Tnx, 2 = simulation)
+    2  : Source of ETo file (1 = *.ETo, 2 = simulation)
+    2  : Source of Rain file (1 = *.PLU, 2 = simulation)
+    1  : Method for ETo calculation (1 = FAO Penman-Monteith, 2 = from pan)
+project.Tnx
+project.ETo
+project.PLU

@@ -1,0 +1,5 @@
+  AquaCrop (Version 7.1 - August 2023) - Groundwater Table
+       12.00  : AquaCrop Version (March 2017)
+    2  : Type of groundwater table (fixed (1), or variable (2))
+    2.00  : Groundwater table depth (m below surface) at start
+    0.00  : Groundwater quality (ECe in dS/m)

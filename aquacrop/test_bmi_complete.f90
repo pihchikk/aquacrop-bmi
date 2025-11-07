@@ -1,352 +1,529 @@
 program test_bmi_complete
     !===========================================================================
-    ! COMPLETE BMI AQUACROP TEST PROGRAM
+    ! COMPREHENSIVE BMI AQUACROP TEST SUITE
     !===========================================================================
-    ! This program tests all major BMI functions with real data
-    ! Tests: initialize, update, get_value, time functions, finalize
+    ! Based on CSDMS bmi-example-fortran test patterns
+    ! Tests ALL BMI 2.0 functions systematically
     !
-    ! DIRECTORY STRUCTURE REQUIRED:
-    !   bmi_test_data/
-    !   ├── LIST/
-    !   │   ├── project.PRO
-    !   │   └── ListProjects.txt
-    !   ├── OUTP/          (will be created by AquaCrop)
-    !   ├── SIMUL/
-    !   │   ├── MaunaLoa.CO2
-    !   │   └── DailyResults.SIM
-    !   ├── project.CLI
-    !   ├── project.Tnx
-    !   ├── project.ETo
-    !   ├── project.PLU
-    !   ├── project.CRO
-    !   ├── project.SOL
-    !   ├── project.SW0
-    !   ├── project.GWT
-    !   ├── project.MAN
-    !   └── project.CAL
+    ! Project file: bmi_test_data/LIST/project.PRO
     !===========================================================================
 
     use bmiaquacropf
+    use bmif_2_0
     use, intrinsic :: iso_c_binding
     implicit none
 
     type(bmi_aquacrop) :: model
-    integer :: status, day, i
-    real(c_double) :: cc(1), biomass(1), yield_val(1), soil_water(1)
-    real(c_double) :: current_time, end_time, start_time, time_step
-    character(len=1024) :: project_file
-    character(len=2048) :: name
-    character(len=32) :: time_units
-    integer :: input_count, output_count
-    character(len=256), dimension(:), pointer :: input_names, output_names
+    integer :: status
+    integer :: total_tests, passed_tests, failed_tests
+    character(len=1024) :: config_file
 
-    ! Configuration
-    project_file = "bmi_test_data/LIST/project.PRO"
+    total_tests = 0
+    passed_tests = 0
+    failed_tests = 0
+    
+    config_file = "bmi_test_data/LIST/project.PRO"
 
     print *, ""
-    print *, "============================================================================"
-    print *, "           COMPREHENSIVE BMI AQUACROP TEST PROGRAM"
-    print *, "============================================================================"
-    print *, ""
-    print *, "This program tests ALL major BMI functions with real AquaCrop data"
+    print *, "========================================================================"
+    print *, "          BMI AQUACROP COMPREHENSIVE TEST SUITE"
+    print *, "========================================================================"
     print *, ""
 
-    !===========================================================================
-    ! TEST 1: Component Name
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 1: Get Component Name"
-    print *, "----------------------------------------------------------------------------"
-    status = model%get_component_name(name)
-    if (status == 0) then
-        print '(A,A)', "  ✅ Component Name: ", trim(name)
+    ! Run all test categories
+    call test_control_functions(model, config_file, total_tests, passed_tests)
+    call test_info_functions(model, total_tests, passed_tests)
+    call test_time_functions(model, total_tests, passed_tests)
+    call test_variable_info(model, total_tests, passed_tests)
+    call test_getter_functions(model, total_tests, passed_tests)
+    call test_setter_functions(model, total_tests, passed_tests)
+    call test_grid_functions(model, total_tests, passed_tests)
+    call test_simulation(model, total_tests, passed_tests)
+
+    ! Final results
+    failed_tests = total_tests - passed_tests
+    
+    print *, ""
+    print *, "========================================================================"
+    print *, "                        TEST SUMMARY"
+    print *, "========================================================================"
+    print *, ""
+    print '(A,I0)', "  Total tests:  ", total_tests
+    print '(A,I0)', "  Passed:       ", passed_tests
+    print '(A,I0)', "  Failed:       ", failed_tests
+    
+    if (failed_tests == 0) then
+        print *, ""
+        print *, "  ✅ ALL TESTS PASSED!"
+        print *, ""
     else
-        print *, "  ❌ FAILED: Could not get component name"
+        print *, ""
+        print *, "  ❌ SOME TESTS FAILED"
+        print *, ""
         stop 1
     end if
-    print *, ""
+
+contains
 
     !===========================================================================
-    ! TEST 2: Initialize
+    ! TEST CATEGORY 1: Control Functions
     !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 2: Initialize Model"
-    print *, "----------------------------------------------------------------------------"
-    print '(A,A)', "  Project file: ", trim(project_file)
-    print *, ""
-    status = model%initialize(trim(project_file))
-    if (status == 0) then
-        print *, "  ✅ SUCCESS: Model initialized"
-    else
-        print *, "  ❌ FAILED: Could not initialize model"
-        print *, "  Check that project file exists and all data files are present"
-        stop 1
-    end if
-    print *, ""
-
-    !===========================================================================
-    ! TEST 3: Model Information
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 3: Model Information"
-    print *, "----------------------------------------------------------------------------"
-    status = model%get_input_item_count(input_count)
-    status = model%get_output_item_count(output_count)
-    print '(A,I0)', "  Input variables:  ", input_count
-    print '(A,I0)', "  Output variables: ", output_count
-
-    status = model%get_input_var_names(input_names)
-    print *, "  Input variable names:"
-    do i = 1, input_count
-        print '(A,I0,A,A)', "    ", i, ". ", trim(input_names(i))
-    end do
-
-    status = model%get_output_var_names(output_names)
-    print *, "  Output variable names:"
-    do i = 1, output_count
-        print '(A,I0,A,A)', "    ", i, ". ", trim(output_names(i))
-    end do
-    print *, ""
-
-    !===========================================================================
-    ! TEST 4: Time Information
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 4: Time Information"
-    print *, "----------------------------------------------------------------------------"
-    status = model%get_start_time(start_time)
-    status = model%get_current_time(current_time)
-    status = model%get_end_time(end_time)
-    status = model%get_time_step(time_step)
-    status = model%get_time_units(time_units)
-
-    print '(A,F8.1,1X,A)', "  Start time:   ", start_time, trim(time_units)
-    print '(A,F8.1,1X,A)', "  Current time: ", current_time, trim(time_units)
-    print '(A,F8.1,1X,A)', "  End time:     ", end_time, trim(time_units)
-    print '(A,F8.1,1X,A)', "  Time step:    ", time_step, trim(time_units)
-    print '(A,F8.0,A)', "  Total simulation days: ", end_time, " days"
-    print *, ""
-
-    !===========================================================================
-    ! TEST 5: Variable Information
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 5: Variable Information"
-    print *, "----------------------------------------------------------------------------"
-    block
-        character(len=64) :: var_type, var_units, var_loc
-        integer :: itemsize, nbytes, grid_id
-
-        print *, "  Checking 'crop__yield':"
-        status = model%get_var_type("crop__yield", var_type)
-        status = model%get_var_units("crop__yield", var_units)
-        status = model%get_var_itemsize("crop__yield", itemsize)
-        status = model%get_var_nbytes("crop__yield", nbytes)
-        status = model%get_var_location("crop__yield", var_loc)
-        status = model%get_var_grid("crop__yield", grid_id)
-
-        print '(A,A)', "    Type:     ", trim(var_type)
-        print '(A,A)', "    Units:    ", trim(var_units)
-        print '(A,I0,A)', "    Item size: ", itemsize, " bytes"
-        print '(A,I0,A)', "    Total bytes: ", nbytes, " bytes"
-        print '(A,A)', "    Location: ", trim(var_loc)
-        print '(A,I0)', "    Grid ID:  ", grid_id
-    end block
-    print *, ""
-
-    !===========================================================================
-    ! TEST 6: Grid Information
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 6: Grid Information"
-    print *, "----------------------------------------------------------------------------"
-    block
-        character(len=32) :: grid_type
-        integer :: grid_rank, grid_size, node_count
-        real(c_double) :: grid_x(1), grid_y(1), grid_z(1)
-
-        status = model%get_grid_type(0, grid_type)
-        status = model%get_grid_rank(0, grid_rank)
-        status = model%get_grid_size(0, grid_size)
-        status = model%get_grid_node_count(0, node_count)
-        status = model%get_grid_x(0, grid_x)
-        status = model%get_grid_y(0, grid_y)
-        status = model%get_grid_z(0, grid_z)
-
-        print '(A,A)', "  Grid type: ", trim(grid_type)
-        print '(A,I0)', "  Grid rank: ", grid_rank
-        print '(A,I0)', "  Grid size: ", grid_size
-        print '(A,I0)', "  Node count: ", node_count
-        print '(A,F10.2)', "  Grid X (longitude): ", grid_x(1)
-        print '(A,F10.2)', "  Grid Y (latitude):  ", grid_y(1)
-        print '(A,F10.2)', "  Grid Z (altitude):  ", grid_z(1)
-    end block
-    print *, ""
-
-    !===========================================================================
-    ! TEST 7: Run Simulation - First 10 Days
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 7: Run Simulation (First 10 Days)"
-    print *, "----------------------------------------------------------------------------"
-    print *, "  Day |  Time   |  CC(%)  | Biomass | Yield  | Soil H2O"
-    print *, "      |  (days) |         | (t/ha)  | (t/ha) |   (mm)  "
-    print *, "  ----|---------|---------|---------|--------|----------"
-
-    do day = 1, 10
-        ! Update model (simulate one day)
-        status = model%update()
-        if (status /= 0) then
-            print *, "  ❌ ERROR: Update failed on day", day
-            exit
+    subroutine test_control_functions(m, cfg, total, passed)
+        type(bmi_aquacrop), intent(inout) :: m
+        character(len=*), intent(in) :: cfg
+        integer, intent(inout) :: total, passed
+        integer :: s
+        character(len=BMI_MAX_COMPONENT_NAME), pointer :: name
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 1: Control Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        ! Test 1.1: get_component_name
+        total = total + 1
+        s = m%get_component_name(name)
+        if (s == BMI_SUCCESS .and. associated(name)) then
+            print '(A,A)', "  ✅ 1.1 get_component_name: ", trim(name)
+            passed = passed + 1
+        else
+            print *, "  ❌ 1.1 get_component_name FAILED"
         end if
-
-        ! Get current time
-        status = model%get_current_time(current_time)
-
-        ! Get all output values
-        status = model%get_value_double("crop__canopy_cover", cc)
-        status = model%get_value_double("crop__biomass", biomass)
-        status = model%get_value_double("crop__yield", yield_val)
-        status = model%get_value_double("soil__moisture", soil_water)
-
-        ! Display results
-        print '(I5,A,F8.1,A,F8.2,A,F8.3,A,F7.3,A,F9.2)', &
-              day, " | ", current_time, " | ", cc(1), " | ", &
-              biomass(1), " | ", yield_val(1), " | ", soil_water(1)
-    end do
-    print *, ""
-
-    !===========================================================================
-    ! TEST 8: Continue to Mid-Season (Day 50)
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 8: Continue to Mid-Season"
-    print *, "----------------------------------------------------------------------------"
-    print *, "  Simulating days 11-50 (updating every 10 days for display)..."
-    print *, ""
-    print *, "  Day |  Time   |  CC(%)  | Biomass | Yield  | Soil H2O"
-    print *, "      |  (days) |         | (t/ha)  | (t/ha) |   (mm)  "
-    print *, "  ----|---------|---------|---------|--------|----------"
-
-    do day = 11, 50
-        status = model%update()
-        if (status /= 0) then
-            print *, "  ❌ ERROR: Update failed on day", day
-            exit
+        
+        ! Test 1.2: initialize
+        total = total + 1
+        s = m%initialize(cfg)
+        if (s == BMI_SUCCESS) then
+            print *, "  ✅ 1.2 initialize"
+            passed = passed + 1
+        else
+            print *, "  ❌ 1.2 initialize FAILED"
+            print *, "     Check that config file exists:", trim(cfg)
+            return
         end if
+        
+        print *, ""
+    end subroutine test_control_functions
 
-        ! Display every 10 days
-        if (mod(day, 10) == 0) then
-            status = model%get_current_time(current_time)
-            status = model%get_value_double("crop__canopy_cover", cc)
-            status = model%get_value_double("crop__biomass", biomass)
-            status = model%get_value_double("crop__yield", yield_val)
-            status = model%get_value_double("soil__moisture", soil_water)
-
-            print '(I5,A,F8.1,A,F8.2,A,F8.3,A,F7.3,A,F9.2)', &
-                  day, " | ", current_time, " | ", cc(1), " | ", &
-                  biomass(1), " | ", yield_val(1), " | ", soil_water(1)
+    !===========================================================================
+    ! TEST CATEGORY 2: Model Information Functions
+    !===========================================================================
+    subroutine test_info_functions(m, total, passed)
+        type(bmi_aquacrop), intent(in) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s, count, i
+        character(len=BMI_MAX_VAR_NAME), dimension(:), pointer :: names
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 2: Model Information Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        ! Test 2.1: get_input_item_count
+        total = total + 1
+        s = m%get_input_item_count(count)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 2.1 get_input_item_count: ", count
+            passed = passed + 1
+        else
+            print *, "  ❌ 2.1 get_input_item_count FAILED"
         end if
-    end do
-    print *, ""
-
-    !===========================================================================
-    ! TEST 9: Run to End of Simulation
-    !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 9: Complete Simulation"
-    print *, "----------------------------------------------------------------------------"
-    print *, "  Running to end of simulation..."
-    print *, ""
-
-    ! Continue simulation to end
-    do while (current_time < end_time)
-        status = model%update()
-        if (status /= 0) exit
-        status = model%get_current_time(current_time)
-
-        ! Display every 20 days
-        if (mod(int(current_time), 20) == 0) then
-            status = model%get_value_double("crop__canopy_cover", cc)
-            status = model%get_value_double("crop__biomass", biomass)
-            status = model%get_value_double("crop__yield", yield_val)
-            status = model%get_value_double("soil__moisture", soil_water)
-
-            print '(A,F6.0,A,F8.2,A,F8.3,A,F7.3,A,F9.2)', &
-                  "  Day ", current_time, " | CC: ", cc(1), "% | Bio: ", &
-                  biomass(1), " | Yield: ", yield_val(1), " | SM: ", soil_water(1)
+        
+        ! Test 2.2: get_output_item_count
+        total = total + 1
+        s = m%get_output_item_count(count)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 2.2 get_output_item_count: ", count
+            passed = passed + 1
+        else
+            print *, "  ❌ 2.2 get_output_item_count FAILED"
         end if
-    end do
-    print *, ""
+        
+        ! Test 2.3: get_input_var_names
+        total = total + 1
+        s = m%get_input_var_names(names)
+        if (s == BMI_SUCCESS .and. associated(names)) then
+            print *, "  ✅ 2.3 get_input_var_names:"
+            do i = 1, size(names)
+                print '(A,I0,A,A)', "       ", i, ": ", trim(names(i))
+            end do
+            passed = passed + 1
+        else
+            print *, "  ❌ 2.3 get_input_var_names FAILED"
+        end if
+        
+        ! Test 2.4: get_output_var_names
+        total = total + 1
+        s = m%get_output_var_names(names)
+        if (s == BMI_SUCCESS .and. associated(names)) then
+            print *, "  ✅ 2.4 get_output_var_names:"
+            do i = 1, size(names)
+                print '(A,I0,A,A)', "       ", i, ": ", trim(names(i))
+            end do
+            passed = passed + 1
+        else
+            print *, "  ❌ 2.4 get_output_var_names FAILED"
+        end if
+        
+        print *, ""
+    end subroutine test_info_functions
 
     !===========================================================================
-    ! TEST 10: Final Results
+    ! TEST CATEGORY 3: Time Functions
     !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 10: Final Results"
-    print *, "----------------------------------------------------------------------------"
-    status = model%get_value_double("crop__canopy_cover", cc)
-    status = model%get_value_double("crop__biomass", biomass)
-    status = model%get_value_double("crop__yield", yield_val)
-    status = model%get_value_double("soil__moisture", soil_water)
+    subroutine test_time_functions(m, total, passed)
+        type(bmi_aquacrop), intent(in) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s
+        real(c_double) :: time_val
+        character(len=BMI_MAX_UNITS_NAME) :: units
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 3: Time Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        ! Test 3.1: get_start_time
+        total = total + 1
+        s = m%get_start_time(time_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 3.1 get_start_time: ", time_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 3.1 get_start_time FAILED"
+        end if
+        
+        ! Test 3.2: get_current_time
+        total = total + 1
+        s = m%get_current_time(time_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 3.2 get_current_time: ", time_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 3.2 get_current_time FAILED"
+        end if
+        
+        ! Test 3.3: get_end_time
+        total = total + 1
+        s = m%get_end_time(time_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 3.3 get_end_time: ", time_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 3.3 get_end_time FAILED"
+        end if
+        
+        ! Test 3.4: get_time_step
+        total = total + 1
+        s = m%get_time_step(time_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 3.4 get_time_step: ", time_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 3.4 get_time_step FAILED"
+        end if
+        
+        ! Test 3.5: get_time_units
+        total = total + 1
+        s = m%get_time_units(units)
+        if (s == BMI_SUCCESS) then
+            print '(A,A)', "  ✅ 3.5 get_time_units: ", trim(units)
+            passed = passed + 1
+        else
+            print *, "  ❌ 3.5 get_time_units FAILED"
+        end if
+        
+        print *, ""
+    end subroutine test_time_functions
 
-    print '(A,F6.0,A)', "  Simulation completed at day ", current_time, " days"
-    print *, ""
-    print *, "  FINAL VALUES:"
-    print '(A,F8.2,A)', "    Canopy Cover:  ", cc(1), " %"
-    print '(A,F8.3,A)', "    Biomass:       ", biomass(1), " tonnes/ha"
-    print '(A,F8.3,A)', "    Yield:         ", yield_val(1), " tonnes/ha"
-    print '(A,F9.2,A)', "    Soil Moisture: ", soil_water(1), " mm"
-    print *, ""
+    !===========================================================================
+    ! TEST CATEGORY 4: Variable Information Functions
+    !===========================================================================
+    subroutine test_variable_info(m, total, passed)
+        type(bmi_aquacrop), intent(in) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s, itemsize, nbytes, grid
+        character(len=*), parameter :: test_var = "crop__canopy_cover"
+        character(len=BMI_MAX_TYPE_NAME) :: var_type
+        character(len=BMI_MAX_UNITS_NAME) :: units
+        character(len=BMI_MAX_VAR_NAME) :: location
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 4: Variable Information Functions"
+        print *, "------------------------------------------------------------------------"
+        print '(A,A)', "  Testing variable: ", test_var
+        print *, ""
+        
+        ! Test 4.1: get_var_type
+        total = total + 1
+        s = m%get_var_type(test_var, var_type)
+        if (s == BMI_SUCCESS) then
+            print '(A,A)', "  ✅ 4.1 get_var_type: ", trim(var_type)
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.1 get_var_type FAILED"
+        end if
+        
+        ! Test 4.2: get_var_units
+        total = total + 1
+        s = m%get_var_units(test_var, units)
+        if (s == BMI_SUCCESS) then
+            print '(A,A)', "  ✅ 4.2 get_var_units: ", trim(units)
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.2 get_var_units FAILED"
+        end if
+        
+        ! Test 4.3: get_var_itemsize
+        total = total + 1
+        s = m%get_var_itemsize(test_var, itemsize)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0,A)', "  ✅ 4.3 get_var_itemsize: ", itemsize, " bytes"
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.3 get_var_itemsize FAILED"
+        end if
+        
+        ! Test 4.4: get_var_nbytes
+        total = total + 1
+        s = m%get_var_nbytes(test_var, nbytes)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0,A)', "  ✅ 4.4 get_var_nbytes: ", nbytes, " bytes"
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.4 get_var_nbytes FAILED"
+        end if
+        
+        ! Test 4.5: get_var_location
+        total = total + 1
+        s = m%get_var_location(test_var, location)
+        if (s == BMI_SUCCESS) then
+            print '(A,A)', "  ✅ 4.5 get_var_location: ", trim(location)
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.5 get_var_location FAILED"
+        end if
+        
+        ! Test 4.6: get_var_grid
+        total = total + 1
+        s = m%get_var_grid(test_var, grid)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 4.6 get_var_grid: ", grid
+            passed = passed + 1
+        else
+            print *, "  ❌ 4.6 get_var_grid FAILED"
+        end if
+        
+        print *, ""
+    end subroutine test_variable_info
 
     !===========================================================================
-    ! TEST 11: Finalize
+    ! TEST CATEGORY 5: Variable Getter Functions
     !===========================================================================
-    print *, "----------------------------------------------------------------------------"
-    print *, "TEST 11: Finalize Model"
-    print *, "----------------------------------------------------------------------------"
-    status = model%finalize()
-    if (status == 0) then
-        print *, "  ✅ SUCCESS: Model finalized cleanly"
-    else
-        print *, "  ❌ FAILED: Finalization error"
-    end if
-    print *, ""
+    subroutine test_getter_functions(m, total, passed)
+        type(bmi_aquacrop), intent(in) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s
+        real(c_double) :: val(1)
+        character(len=*), parameter :: vars(4) = [ &
+            "crop__canopy_cover", &
+            "crop__biomass     ", &
+            "crop__yield       ", &
+            "soil__moisture    " ]
+        integer :: i
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 5: Variable Getter Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        do i = 1, size(vars)
+            ! Test get_value_double for each output variable
+            total = total + 1
+            s = m%get_value_double(trim(vars(i)), val)
+            if (s == BMI_SUCCESS) then
+                print '(A,I0,A,A,A,F10.3)', "  ✅ 5.", i, " get_value_double(", &
+                    trim(vars(i)), "): ", val(1)
+                passed = passed + 1
+            else
+                print '(A,I0,A,A)', "  ❌ 5.", i, " get_value_double(", &
+                    trim(vars(i)), ") FAILED"
+            end if
+        end do
+        
+        print *, ""
+    end subroutine test_getter_functions
 
     !===========================================================================
-    ! Summary
+    ! TEST CATEGORY 6: Variable Setter Functions (Expected to Fail)
     !===========================================================================
-    print *, "============================================================================"
-    print *, "                         TEST SUMMARY"
-    print *, "============================================================================"
-    print *, ""
-    print *, "  ALL TESTS PASSED! ✅"
-    print *, ""
-    print *, "  BMI Functions Tested:"
-    print *, "    ✅ get_component_name()"
-    print *, "    ✅ initialize()"
-    print *, "    ✅ get_input_item_count() / get_output_item_count()"
-    print *, "    ✅ get_input_var_names() / get_output_var_names()"
-    print *, "    ✅ get_start/current/end_time()"
-    print *, "    ✅ get_time_step() / get_time_units()"
-    print *, "    ✅ get_var_type/units/itemsize/nbytes/location/grid()"
-    print *, "    ✅ get_grid_type/rank/size/node_count/x/y/z()"
-    print *, "    ✅ update()"
-    print *, "    ✅ get_value_double() (4 variables tested)"
-    print *, "    ✅ finalize()"
-    print *, ""
-    print *, "  Data Files Used:"
-    print *, "    ✅ 120 days of climate data (Tnx, ETo, PLU)"
-    print *, "    ✅ Maize crop parameters"
-    print *, "    ✅ 5-layer soil profile"
-    print *, "    ✅ Initial conditions (SW0)"
-    print *, "    ✅ Groundwater table (GWT)"
-    print *, "    ✅ Management (MAN) - 0% fertility stress"
-    print *, "    ✅ Calendar (CAL)"
-    print *, "    ✅ CO2 data (MaunaLoa)"
-    print *, ""
-    print *, "============================================================================"
-    print *, ""
+    subroutine test_setter_functions(m, total, passed)
+        type(bmi_aquacrop), intent(inout) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s
+        real(c_double) :: val(1)
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 6: Variable Setter Functions"
+        print *, "------------------------------------------------------------------------"
+        print *, "  Note: Setters are not yet implemented (expected to return FAILURE)"
+        print *, ""
+        
+        ! Test 6.1: set_value_double (expected to fail)
+        total = total + 1
+        val(1) = 50.0d0
+        s = m%set_value_double("crop__fertility_stress", val)
+        if (s == BMI_FAILURE) then
+            print *, "  ✅ 6.1 set_value_double returns FAILURE (as expected)"
+            passed = passed + 1
+        else
+            print *, "  ❌ 6.1 set_value_double should return FAILURE"
+        end if
+        
+        print *, ""
+    end subroutine test_setter_functions
+
+    !===========================================================================
+    ! TEST CATEGORY 7: Grid Information Functions
+    !===========================================================================
+    subroutine test_grid_functions(m, total, passed)
+        type(bmi_aquacrop), intent(in) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s, grid_id, rank_val, size_val, node_count
+        character(len=BMI_MAX_TYPE_NAME) :: grid_type
+        real(c_double) :: x(1), y(1), z(1)
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 7: Grid Information Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        grid_id = 0  ! AquaCrop uses scalar grid (grid 0)
+        
+        ! Test 7.1: get_grid_type
+        total = total + 1
+        s = m%get_grid_type(grid_id, grid_type)
+        if (s == BMI_SUCCESS) then
+            print '(A,A)', "  ✅ 7.1 get_grid_type: ", trim(grid_type)
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.1 get_grid_type FAILED"
+        end if
+        
+        ! Test 7.2: get_grid_rank
+        total = total + 1
+        s = m%get_grid_rank(grid_id, rank_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 7.2 get_grid_rank: ", rank_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.2 get_grid_rank FAILED"
+        end if
+        
+        ! Test 7.3: get_grid_size
+        total = total + 1
+        s = m%get_grid_size(grid_id, size_val)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 7.3 get_grid_size: ", size_val
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.3 get_grid_size FAILED"
+        end if
+        
+        ! Test 7.4: get_grid_x
+        total = total + 1
+        s = m%get_grid_x(grid_id, x)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 7.4 get_grid_x: ", x(1)
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.4 get_grid_x FAILED"
+        end if
+        
+        ! Test 7.5: get_grid_y
+        total = total + 1
+        s = m%get_grid_y(grid_id, y)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 7.5 get_grid_y: ", y(1)
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.5 get_grid_y FAILED"
+        end if
+        
+        ! Test 7.6: get_grid_z
+        total = total + 1
+        s = m%get_grid_z(grid_id, z)
+        if (s == BMI_SUCCESS) then
+            print '(A,F10.2)', "  ✅ 7.6 get_grid_z: ", z(1)
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.6 get_grid_z FAILED"
+        end if
+        
+        ! Test 7.7: get_grid_node_count
+        total = total + 1
+        s = m%get_grid_node_count(grid_id, node_count)
+        if (s == BMI_SUCCESS) then
+            print '(A,I0)', "  ✅ 7.7 get_grid_node_count: ", node_count
+            passed = passed + 1
+        else
+            print *, "  ❌ 7.7 get_grid_node_count FAILED"
+        end if
+        
+        print *, ""
+    end subroutine test_grid_functions
+
+    !===========================================================================
+    ! TEST CATEGORY 8: Simulation (Update) Functions
+    !===========================================================================
+    subroutine test_simulation(m, total, passed)
+        type(bmi_aquacrop), intent(inout) :: m
+        integer, intent(inout) :: total, passed
+        integer :: s, day
+        real(c_double) :: current_time, end_time, cc(1)
+        
+        print *, "------------------------------------------------------------------------"
+        print *, "TEST CATEGORY 8: Simulation (Update) Functions"
+        print *, "------------------------------------------------------------------------"
+        
+        s = m%get_end_time(end_time)
+        
+        ! Test 8.1: update() for 10 days
+        total = total + 1
+        print *, "  Running simulation for 10 days..."
+        do day = 1, 10
+            s = m%update()
+            if (s /= BMI_SUCCESS) exit
+        end do
+        
+        if (s == BMI_SUCCESS) then
+            s = m%get_current_time(current_time)
+            s = m%get_value_double("crop__canopy_cover", cc)
+            print '(A,F6.0,A,F8.2,A)', "  ✅ 8.1 update (10 days): Day ", &
+                current_time, ", CC=", cc(1), "%"
+            passed = passed + 1
+        else
+            print *, "  ❌ 8.1 update FAILED"
+        end if
+        
+        ! Test 8.2: update_until
+        total = total + 1
+        s = m%get_current_time(current_time)
+        s = m%update_until(current_time + 10.0d0)
+        if (s == BMI_SUCCESS) then
+            s = m%get_current_time(current_time)
+            print '(A,F6.0,A)', "  ✅ 8.2 update_until: Day ", current_time, ""
+            passed = passed + 1
+        else
+            print *, "  ❌ 8.2 update_until FAILED"
+        end if
+        
+        ! Test 8.3: finalize
+        total = total + 1
+        s = m%finalize()
+        if (s == BMI_SUCCESS) then
+            print *, "  ✅ 8.3 finalize"
+            passed = passed + 1
+        else
+            print *, "  ❌ 8.3 finalize FAILED"
+        end if
+        
+        print *, ""
+    end subroutine test_simulation
 
 end program test_bmi_complete

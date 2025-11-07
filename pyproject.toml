@@ -27,15 +27,22 @@ requires = [
 ]
 build-backend = "hatchling.build"
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "hatchling~=1.27",
+    "babelizer",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.4.2",
     "ruff>=0.1.0",
     "mypy>=1.0",
     "hatchling~=1.27",
-    #mypy-gitlab-code-quality
-    #pymake
-
+    "babelizer",
 ]
 
 [tool.ruff]
@@ -61,3 +68,4 @@ path = "build.py"
 
 [tool.uv.sources]
 pymake = { git = "https://github.com/linuxlizard/pymake" }
+babelizer = { git = "https://github.com/csdms/babelizer" }

@@ -1,33 +1,29 @@
-# Babelizer configuration for AquaCrop BMI
-# This file describes how to wrap the Fortran AquaCrop BMI library
-# so it can be imported and used as a Python package
-
 [library]
 [library.AquaCrop]
 language = "fortran"
-library = "bmiaquacrop"
-# For Fortran, entry_point is the module name containing the BMI type
-entry_point = "bmiaquacropf"
+library = "aquacropbmi"
+header = "aquacropbmi.mod"         
+entry_point = "bmi_aquacrop" 
 
 [build]
 undef_macros = []
 define_macros = []
-libraries = []
-library_dirs = []
-include_dirs = []
-extra_compile_args = []
-
-[package]
-name = "pymt_aquacrop"
-requirements = []
+libraries = ["aquacropbmi", "bmif"]
+library_dirs = ["."]
+include_dirs = [".", "/usr/local/include"]
+extra_compile_args = ["-O2", "-fPIC"]
 
 [info]
-github_username = "your-username"
-package_author = "Your Name"
-package_author_email = "your.email@example.com"
-package_license = "MIT"
-summary = "PyMT plugin for AquaCrop - FAO crop water productivity model"
+github_username = "pihchikk"
+package_author = "pihchikk"
+package_author_email = "alperf97@gmail.com"
+package_license = "MIT License"
+summary = "PyMT plugin for AquaCrop"
 
 [ci]
-python_version = ["3.10", "3.11", "3.12"]
-os = ["linux", "mac"]
+python_version = ["3.11", "3.12", "3.13"]
+os = ["linux", "macos"]
+
+[package]
+name = "aquacrop_bmi_babel"
+requirements = []

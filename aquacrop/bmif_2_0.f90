@@ -61,6 +61,10 @@ module bmif_2_0
      procedure(bmif_set_value_double), deferred :: set_value_double
      procedure(bmif_set_value_at_indices), deferred :: set_value_at_indices
 
+     ! Generic interfaces for babelizer compatibility
+     generic :: get_value => get_value_int, get_value_float, get_value_double
+     generic :: set_value => set_value_int, set_value_float, set_value_double
+
      ! Grid information functions
      procedure(bmif_get_grid_type), deferred :: get_grid_type
      procedure(bmif_get_grid_rank), deferred :: get_grid_rank

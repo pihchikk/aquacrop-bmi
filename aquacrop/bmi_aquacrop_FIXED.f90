@@ -153,7 +153,6 @@ character(len=*), intent(in) :: config_file
 integer :: bmi_status
 integer :: aquacrop_status
 integer(int32) :: from_day, to_day
-type(rep_EffectStress) :: EffectStress_init  ! For initializing fertility stress
 
 ! Call AquaCrop initialization
 ! This loads the project file and sets up the simulation
@@ -165,28 +164,6 @@ if (aquacrop_status /= 0) then
     bmi_status = BMI_FAILURE
     return
 end if
-
-! ========================================================================
-! FIX: Ensure Management is initialized with valid defaults
-! ========================================================================
-! If no .MAN file was loaded, FertilityStress may be uninitialized.
-! This causes all get/set operations on crop__fertility_stress to fail.
-! Solution: Initialize to 0 (no stress) as a safe default.
-if (GetManagement_FertilityStress() < 0 .or. GetManagement_FertilityStress() > 100) then
-    print *, "  Note: Management not fully initialized, setting default FertilityStress = 0"
-    call SetManagement_FertilityStress(0_int8)
-    
-    ! Also initialize the stress parameters for consistency
-    ! This follows the pattern in run.f90
-    EffectStress_init = GetSimulation_EffectStress()
-    call CropStressParametersSoilFertility( &
-        GetCrop_StressResponse(), &
-        0_int8, &
-        EffectStress_init &
-    )
-    call SetSimulation_EffectStress(EffectStress_init)
-end if
-! ========================================================================
 
 ! Get actual simulation period from AquaCrop
 from_day = GetSimulation_FromDayNr()

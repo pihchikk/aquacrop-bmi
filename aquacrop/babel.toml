@@ -2,15 +2,15 @@
 [library.AquaCrop]
 language = "fortran"
 library = "aquacropbmi"
-header = "aquacropbmi.mod"         
-entry_point = "bmi_aquacrop" 
+header = "bmiaquacropf.mod"         # Changed from aquacropbmi.mod
+entry_point = "bmi_aquacrop"        # Changed from bmi_aquacrop
 
 [build]
 undef_macros = []
 define_macros = []
-libraries = ["aquacropbmi", "bmif"]
-library_dirs = ["."]
-include_dirs = [".", "/usr/local/include"]
+libraries = ["aquacropbmi"]
+library_dirs = ["/usr/local/lib"]
+include_dirs = ["/usr/local/include"]  # This will find your installed bmiaquacropf.mod
 extra_compile_args = ["-O2", "-fPIC"]
 
 [info]

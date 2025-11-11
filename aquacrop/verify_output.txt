@@ -1,0 +1,68 @@
+========================================================================
+  VERIFICATION: What version of bmi_aquacrop.f90 do we have?
+========================================================================
+
+1. Check if patch was applied (looking for EffectStress_init):
+   ✅ Found EffectStress_init - patch WAS applied
+156:type(rep_EffectStress) :: EffectStress_init  ! For initializing fertility stress
+181:    EffectStress_init = GetSimulation_EffectStress()
+185:        EffectStress_init &
+
+2. Check GetManagement_FertilityStress in USE statement:
+   ✅ Found in USE statement
+                     SetManagement_FertilityStress, GetManagement_FertilityStress, &
+if (GetManagement_FertilityStress() < 0 .or. GetManagement_FertilityStress() > 100) then
+
+3. Check aquacrop_get_double has fertility_stress case:
+   ✅ Found case statement
+case('crop__fertility_stress')
+    units = "percent"
+case default
+    units = "-"
+--
+case('crop__fertility_stress')
+    ! Get current fertility stress setting (0-100%)
+    ! This is an input variable that affects crop growth
+    dest(1) = real(GetManagement_FertilityStress(), c_double)
+--
+case('crop__fertility_stress')
+    ! Set fertility stress (0-100%)
+    ! Convert from double to int8, ensure it's in valid range
+    fertility_value = int(max(0.0d0, min(100.0d0, src(1))), int8)
+
+4. Count how many times 'crop__fertility_stress' appears:
+   Found 6 occurrences
+
+5. Check the library modification time:
+   Library: Nov 11 15:48 libaquacropbmi.so
+   Source:  Nov 11 15:48 bmi_aquacrop.f90
+   ✅ Library is up to date
+
+6. Verify the actual getter function structure:
+   (Showing lines around the fertility_stress case)
+   At line 431:
+          units = "mm"
+      case('crop__fertility_stress')
+          units = "percent"
+      case default
+          units = "-"
+      end select
+
+   At line 520:
+      select case(trim(name))
+      case('crop__fertility_stress')
+          ! Get current fertility stress setting (0-100%)
+          ! This is an input variable that affects crop growth
+          dest(1) = real(GetManagement_FertilityStress(), c_double)
+      case('crop__canopy_cover')
+
+   At line 587:
+      select case(trim(name))
+      case('crop__fertility_stress')
+          ! Set fertility stress (0-100%)
+          ! Convert from double to int8, ensure it's in valid range
+          fertility_value = int(max(0.0d0, min(100.0d0, src(1))), int8)
+          
+
+========================================================================
+

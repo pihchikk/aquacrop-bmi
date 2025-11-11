@@ -4,9 +4,11 @@ DEBUG = 0
 STATIC = 0
 
 FC = gfortran
-FCFLAGS = $(CPPFLAGS)
-LDFLAGS_EXE =
+FFLAGS = -O2 -fPIC -J. $(shell pkg-config --cflags bmif)
+LDFLAGS = -shared $(shell pkg-config --libs bmif)
 LDFLAGS_LIB =
+BMI_CFLAGS = $(shell pkg-config --cflags bmif)
+BMI_LIBS = $(shell pkg-config --libs bmif)
 
 ifeq ($(STATIC), 1)
     ifneq ($(DEBUG), 0)
@@ -91,8 +93,8 @@ OBJ = climprocessing.o \
     utils.o
 
 # BMI-specific objects
-BMI_OBJ = bmif_2_0.o \
-    bmi_aquacrop.o
+# Note: bmif_2_0 module comes from installed bmi-fortran (/usr/local)
+BMI_OBJ = bmif.o bmi_aquacrop.o
 
 $(STATIC_LIBRARY): $(OBJ) \
     $(OBJ_INTERFACE)
@@ -104,7 +106,7 @@ $(SHARED_LIBRARY): $(OBJ) \
 
 # BMI shared library - includes both AquaCrop and BMI wrapper
 $(BMI_LIBRARY): $(OBJ) $(BMI_OBJ)
-	$(FC) $(LDFLAGS_LIB) $(FCFLAGS) -o $(BMI_LIBRARY) $(OBJ) $(BMI_OBJ)
+	$(FC) $(LDFLAGS_LIB) $(FCFLAGS) -o $(BMI_LIBRARY) $(OBJ) $(BMI_OBJ) $(BMI_LIBS)
 
 fortranclean:
 	$(RM) $(wildcard *.mod) $(wildcard *.o) $(STATIC_LIBRARY) $(SHARED_LIBRARY) $(BMI_LIBRARY)
@@ -194,17 +196,44 @@ utils.o: utils.f90 \
 
 # BMI-specific compilation rules
 
-# BMI base module (needs to be obtained from bmi-fortran or babelizer)
-bmif_2_0.o: bmif_2_0.f90
-	$(FC) $(FCFLAGS) -c $< -o $@
-
-# BMI AquaCrop wrapper
+# BMI base module comes from installed bmi-fortran package
+# No need to compile bmif_2_0.f90 - it's provided by the system
+bmif.o: bmif.f90
+	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -c $< -o $@
+# BMI AquaCrop wrapper 
 bmi_aquacrop.o: bmi_aquacrop.f90 \
-    bmif_2_0.o \
     global.o \
     run.o \
-    kinds.o
-	$(FC) $(FCFLAGS) -c $< -o $@
+    kinds.o \
+    bmif.o
+	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -c $< -o $@
+
+# Installation
+PREFIX ?= /usr/local
+INSTALL_LIB = $(PREFIX)/lib
+INSTALL_INC = $(PREFIX)/include
+INSTALL_PC = $(PREFIX)/lib/pkgconfig
+
+install: $(BMI_LIBRARY)
+	mkdir -p $(INSTALL_LIB) $(INSTALL_INC) $(INSTALL_PC)
+	install -m 644 $(BMI_LIBRARY) $(INSTALL_LIB)/
+	install -m 644 *.mod $(INSTALL_INC)/
+	echo 'prefix=$(PREFIX)' > $(INSTALL_PC)/aquacropbmi.pc
+	echo 'exec_prefix=$${prefix}' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'libdir=$${exec_prefix}/lib' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'includedir=$${prefix}/include' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo '' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Name: aquacropbmi' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Description: AquaCrop BMI Library' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Version: 7.0' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Requires: bmif' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Libs: -L$${libdir} -laquacropbmi' >> $(INSTALL_PC)/aquacropbmi.pc
+	echo 'Cflags: -I$${includedir}' >> $(INSTALL_PC)/aquacropbmi.pc
+
+uninstall:
+	rm -f $(INSTALL_LIB)/$(BMI_LIBRARY)
+	rm -f $(INSTALL_INC)/*.mod
+	rm -f $(INSTALL_PC)/aquacropbmi.pc
 
 
 # Interface Fortran code: always adding the parent module and the kinds and
@@ -216,5 +245,9 @@ bmi_aquacrop.o: bmi_aquacrop.f90 \
 $(EXECUTABLE): aquacrop.o
 	$(FC) $(LDFLAGS_EXE) aquacrop.o $(OBJ) -o $(EXECUTABLE)
 
+# BMI test executable
+test_bmi_complete: test_bmi_complete.f90 $(BMI_LIBRARY)
+	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -o $@ $< -L. -laquacropbmi -Wl,-rpath,. $(BMI_LIBS)
+
 clean: fortranclean
-	$(RM) $(EXECUTABLE)
+	$(RM) $(EXECUTABLE) test_bmi_complete

@@ -198,15 +198,14 @@ utils.o: utils.f90 \
 
 # BMI base module comes from installed bmi-fortran package
 # No need to compile bmif_2_0.f90 - it's provided by the system
-bmif.o: bmif.f90
+bmif.o: bmif.f90 bmi_aquacrop.o
 	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -c $< -o $@
 
 # BMI AquaCrop wrapper 
 bmi_aquacrop.o: bmi_aquacrop.f90 \
     global.o \
     run.o \
-    kinds.o \
-    bmif.o
+    kinds.o
 	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -c $< -o $@
 
 # Installation

@@ -926,6 +926,7 @@ subroutine FinalizeTheProgram()
     open(newunit=fend, file=(GetPathNameOutp() // 'AllDone.OUT'), &
          status='replace', action='write')
     write(fend, '(a)') 'All done'
+    close(fend)  ! *** ADDED: Close the file handle to prevent leaks ***
 end subroutine FinalizeTheProgram
 
 

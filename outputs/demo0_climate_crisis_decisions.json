@@ -1,0 +1,44 @@
+[
+  {
+    "day": 50,
+    "stage": "heatwave_emergency",
+    "decision": "\ud83d\udd25 HEATWAVE DETECTED - EMERGENCY COOLING PROTOCOL",
+    "action": "heatwave_emergency",
+    "conditions": {
+      "cc": 9.88622629312666,
+      "bio": 0.1288026798770732,
+      "moisture": 220.81408034286963
+    },
+    "interventions": {
+      "tmax": 45.0,
+      "tmin": 30.0,
+      "et0": 12.0,
+      "rain": 0.0,
+      "irrigation": 60.0,
+      "method": "drip",
+      "mulch": 100.0,
+      "bunds": 0.4
+    }
+  },
+  {
+    "day": 100,
+    "stage": "optimal_recovery",
+    "decision": "\ud83c\udf1f RECOVERY MODE - OPTIMIZE FOR MAXIMUM YIELD",
+    "action": "optimal_recovery",
+    "conditions": {
+      "cc": 67.98358858282944,
+      "bio": 0.3827353242764205,
+      "moisture": 401.3198188920252
+    },
+    "interventions": {
+      "rain": 80.0,
+      "tmax": 28.0,
+      "tmin": 18.0,
+      "et0": 5.0,
+      "co2": 800.0,
+      "fertility": 100.0,
+      "irrigation": 40.0,
+      "weeds": 0.0
+    }
+  }
+]

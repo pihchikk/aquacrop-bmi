@@ -1,0 +1,523 @@
+[19:50:36] ================================================================================
+[19:50:36] SETTER TEST STARTED
+[19:50:36] Input: /mnt/d/KNP/aquacrop-bmi/scenarios/AquacropSimulationData.json
+[19:50:36] Config: /mnt/d/KNP/aquacrop-bmi/outputs/setter_test_20251114_195036/LIST/project.PRO
+[19:50:36] ================================================================================
+[19:50:36] 
+================================================================================
+[19:50:36] COMPREHENSIVE TEST: weather__rainfall_amount
+[19:50:36] Description: Extreme rainfall (flood)
+[19:50:36] Extreme value: 1000.0
+[19:50:36] ================================================================================
+[19:50:36] TEST1 weather__rainfall_amount: Starting
+[19:50:36] TEST1 weather__rainfall_amount: Init OK
+[19:50:36] TEST1 weather__rainfall_amount: Initial value = 8.0
+[19:50:36] TEST1 weather__rainfall_amount: Set to 1000.0
+[19:50:36] TEST1 weather__rainfall_amount: After = 1000.0
+[19:50:36] TEST1 weather__rainfall_amount: Changed = True (expected 1000.0, got 1000.0)
+[19:50:36] TEST2 weather__rainfall_amount: Testing strategies...
+[19:50:36] TEST2 weather__rainfall_amount: Trying strategy 'once'
+[19:50:36] RUN weather__rainfall_amount=None strategy=once: Starting
+[19:50:36] RUN weather__rainfall_amount: Init OK
+[19:50:36] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:36] RUN weather__rainfall_amount: Completed, applied setter 0 times, got 168 data points
+[19:50:36] RUN weather__rainfall_amount=1000.0 strategy=once: Starting
+[19:50:36] RUN weather__rainfall_amount: Init OK
+[19:50:36] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:36] RUN weather__rainfall_amount: First setter applied at step 10
+[19:50:36] RUN weather__rainfall_amount: Completed, applied setter 1 times, got 168 data points
+[19:50:36] TEST2 weather__rainfall_amount: Strategy 'once' -> impact_score=437.4
+[19:50:36] TEST2 weather__rainfall_amount: Trying strategy 'continuous'
+[19:50:36] RUN weather__rainfall_amount=None strategy=continuous: Starting
+[19:50:37] RUN weather__rainfall_amount: Init OK
+[19:50:37] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:37] RUN weather__rainfall_amount: Completed, applied setter 0 times, got 168 data points
+[19:50:37] RUN weather__rainfall_amount=1000.0 strategy=continuous: Starting
+[19:50:37] RUN weather__rainfall_amount: Init OK
+[19:50:37] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:37] RUN weather__rainfall_amount: First setter applied at step 1
+[19:50:37] RUN weather__rainfall_amount: Completed, applied setter 167 times, got 168 data points
+[19:50:37] TEST2 weather__rainfall_amount: Strategy 'continuous' -> impact_score=0.0
+[19:50:37] TEST2 weather__rainfall_amount: Trying strategy 'early'
+[19:50:37] RUN weather__rainfall_amount=None strategy=early: Starting
+[19:50:37] RUN weather__rainfall_amount: Init OK
+[19:50:37] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:37] RUN weather__rainfall_amount: Completed, applied setter 0 times, got 168 data points
+[19:50:37] RUN weather__rainfall_amount=1000.0 strategy=early: Starting
+[19:50:37] RUN weather__rainfall_amount: Init OK
+[19:50:37] RUN weather__rainfall_amount: Will run 167 steps
+[19:50:37] RUN weather__rainfall_amount: First setter applied at step 1
+[19:50:38] RUN weather__rainfall_amount: Completed, applied setter 167 times, got 168 data points
+[19:50:38] TEST2 weather__rainfall_amount: Strategy 'early' -> impact_score=0.0
+[19:50:38] VERDICT weather__rainfall_amount: WEAK (area=216, pct_diff=1%, strategy=once, metric=soil_moisture)
+[19:50:38] 
+================================================================================
+[19:50:38] COMPREHENSIVE TEST: weather__air_temperature_max
+[19:50:38] Description: Extreme heat
+[19:50:38] Extreme value: 60.0
+[19:50:38] ================================================================================
+[19:50:38] TEST1 weather__air_temperature_max: Starting
+[19:50:38] TEST1 weather__air_temperature_max: Init OK
+[19:50:38] TEST1 weather__air_temperature_max: Initial value = 4.6
+[19:50:38] TEST1 weather__air_temperature_max: Set to 60.0
+[19:50:38] TEST1 weather__air_temperature_max: After = 60.0
+[19:50:38] TEST1 weather__air_temperature_max: Changed = True (expected 60.0, got 60.0)
+[19:50:38] TEST2 weather__air_temperature_max: Testing strategies...
+[19:50:38] TEST2 weather__air_temperature_max: Trying strategy 'once'
+[19:50:38] RUN weather__air_temperature_max=None strategy=once: Starting
+[19:50:38] RUN weather__air_temperature_max: Init OK
+[19:50:38] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:38] RUN weather__air_temperature_max: Completed, applied setter 0 times, got 168 data points
+[19:50:38] RUN weather__air_temperature_max=60.0 strategy=once: Starting
+[19:50:38] RUN weather__air_temperature_max: Init OK
+[19:50:38] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:38] RUN weather__air_temperature_max: First setter applied at step 10
+[19:50:38] RUN weather__air_temperature_max: Completed, applied setter 1 times, got 168 data points
+[19:50:38] TEST2 weather__air_temperature_max: Strategy 'once' -> impact_score=0.0
+[19:50:38] TEST2 weather__air_temperature_max: Trying strategy 'continuous'
+[19:50:38] RUN weather__air_temperature_max=None strategy=continuous: Starting
+[19:50:38] RUN weather__air_temperature_max: Init OK
+[19:50:38] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:38] RUN weather__air_temperature_max: Completed, applied setter 0 times, got 168 data points
+[19:50:38] RUN weather__air_temperature_max=60.0 strategy=continuous: Starting
+[19:50:39] RUN weather__air_temperature_max: Init OK
+[19:50:39] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:39] RUN weather__air_temperature_max: First setter applied at step 1
+[19:50:39] RUN weather__air_temperature_max: Completed, applied setter 167 times, got 168 data points
+[19:50:39] TEST2 weather__air_temperature_max: Strategy 'continuous' -> impact_score=0.0
+[19:50:39] TEST2 weather__air_temperature_max: Trying strategy 'early'
+[19:50:39] RUN weather__air_temperature_max=None strategy=early: Starting
+[19:50:39] RUN weather__air_temperature_max: Init OK
+[19:50:39] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:39] RUN weather__air_temperature_max: Completed, applied setter 0 times, got 168 data points
+[19:50:39] RUN weather__air_temperature_max=60.0 strategy=early: Starting
+[19:50:39] RUN weather__air_temperature_max: Init OK
+[19:50:39] RUN weather__air_temperature_max: Will run 167 steps
+[19:50:39] RUN weather__air_temperature_max: First setter applied at step 1
+[19:50:39] RUN weather__air_temperature_max: Completed, applied setter 167 times, got 168 data points
+[19:50:39] TEST2 weather__air_temperature_max: Strategy 'early' -> impact_score=0.0
+[19:50:39] VERDICT weather__air_temperature_max: FAILED (area=0, pct_diff=0%, strategy=once, metric=soil_moisture)
+[19:50:39] 
+================================================================================
+[19:50:39] COMPREHENSIVE TEST: weather__air_temperature_min
+[19:50:39] Description: Extreme cold
+[19:50:39] Extreme value: -20.0
+[19:50:39] ================================================================================
+[19:50:39] TEST1 weather__air_temperature_min: Starting
+[19:50:39] TEST1 weather__air_temperature_min: Init OK
+[19:50:39] TEST1 weather__air_temperature_min: Initial value = 9.6
+[19:50:39] TEST1 weather__air_temperature_min: Set to -20.0
+[19:50:39] TEST1 weather__air_temperature_min: After = -20.0
+[19:50:39] TEST1 weather__air_temperature_min: Changed = True (expected -20.0, got -20.0)
+[19:50:39] TEST2 weather__air_temperature_min: Testing strategies...
+[19:50:39] TEST2 weather__air_temperature_min: Trying strategy 'once'
+[19:50:39] RUN weather__air_temperature_min=None strategy=once: Starting
+[19:50:40] RUN weather__air_temperature_min: Init OK
+[19:50:40] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:40] RUN weather__air_temperature_min: Completed, applied setter 0 times, got 168 data points
+[19:50:40] RUN weather__air_temperature_min=-20.0 strategy=once: Starting
+[19:50:40] RUN weather__air_temperature_min: Init OK
+[19:50:40] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:40] RUN weather__air_temperature_min: First setter applied at step 10
+[19:50:40] RUN weather__air_temperature_min: Completed, applied setter 1 times, got 168 data points
+[19:50:40] TEST2 weather__air_temperature_min: Strategy 'once' -> impact_score=1.4
+[19:50:40] TEST2 weather__air_temperature_min: Trying strategy 'continuous'
+[19:50:40] RUN weather__air_temperature_min=None strategy=continuous: Starting
+[19:50:40] RUN weather__air_temperature_min: Init OK
+[19:50:40] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:40] RUN weather__air_temperature_min: Completed, applied setter 0 times, got 168 data points
+[19:50:40] RUN weather__air_temperature_min=-20.0 strategy=continuous: Starting
+[19:50:40] RUN weather__air_temperature_min: Init OK
+[19:50:40] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:40] RUN weather__air_temperature_min: First setter applied at step 1
+[19:50:40] RUN weather__air_temperature_min: Completed, applied setter 167 times, got 168 data points
+[19:50:40] TEST2 weather__air_temperature_min: Strategy 'continuous' -> impact_score=0.0
+[19:50:40] TEST2 weather__air_temperature_min: Trying strategy 'early'
+[19:50:40] RUN weather__air_temperature_min=None strategy=early: Starting
+[19:50:41] RUN weather__air_temperature_min: Init OK
+[19:50:41] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:41] RUN weather__air_temperature_min: Completed, applied setter 0 times, got 168 data points
+[19:50:41] RUN weather__air_temperature_min=-20.0 strategy=early: Starting
+[19:50:41] RUN weather__air_temperature_min: Init OK
+[19:50:41] RUN weather__air_temperature_min: Will run 167 steps
+[19:50:41] RUN weather__air_temperature_min: First setter applied at step 1
+[19:50:41] RUN weather__air_temperature_min: Completed, applied setter 167 times, got 168 data points
+[19:50:41] TEST2 weather__air_temperature_min: Strategy 'early' -> impact_score=0.0
+[19:50:41] VERDICT weather__air_temperature_min: FAILED (area=1, pct_diff=0%, strategy=once, metric=soil_moisture)
+[19:50:41] 
+================================================================================
+[19:50:41] COMPREHENSIVE TEST: weather__reference_evapotranspiration
+[19:50:41] Description: Extreme ET demand
+[19:50:41] Extreme value: 50.0
+[19:50:41] ================================================================================
+[19:50:41] TEST1 weather__reference_evapotranspiration: Starting
+[19:50:41] TEST1 weather__reference_evapotranspiration: Init OK
+[19:50:41] TEST1 weather__reference_evapotranspiration: Initial value = 1.4
+[19:50:41] TEST1 weather__reference_evapotranspiration: Set to 50.0
+[19:50:41] TEST1 weather__reference_evapotranspiration: After = 50.0
+[19:50:41] TEST1 weather__reference_evapotranspiration: Changed = True (expected 50.0, got 50.0)
+[19:50:41] TEST2 weather__reference_evapotranspiration: Testing strategies...
+[19:50:41] TEST2 weather__reference_evapotranspiration: Trying strategy 'once'
+[19:50:41] RUN weather__reference_evapotranspiration=None strategy=once: Starting
+[19:50:41] RUN weather__reference_evapotranspiration: Init OK
+[19:50:41] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:41] RUN weather__reference_evapotranspiration: Completed, applied setter 0 times, got 168 data points
+[19:50:41] RUN weather__reference_evapotranspiration=50.0 strategy=once: Starting
+[19:50:42] RUN weather__reference_evapotranspiration: Init OK
+[19:50:42] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:42] RUN weather__reference_evapotranspiration: First setter applied at step 10
+[19:50:42] RUN weather__reference_evapotranspiration: Completed, applied setter 1 times, got 168 data points
+[19:50:42] TEST2 weather__reference_evapotranspiration: Strategy 'once' -> impact_score=423.5
+[19:50:42] TEST2 weather__reference_evapotranspiration: Trying strategy 'continuous'
+[19:50:42] RUN weather__reference_evapotranspiration=None strategy=continuous: Starting
+[19:50:42] RUN weather__reference_evapotranspiration: Init OK
+[19:50:42] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:42] RUN weather__reference_evapotranspiration: Completed, applied setter 0 times, got 168 data points
+[19:50:42] RUN weather__reference_evapotranspiration=50.0 strategy=continuous: Starting
+[19:50:42] RUN weather__reference_evapotranspiration: Init OK
+[19:50:42] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:42] RUN weather__reference_evapotranspiration: First setter applied at step 1
+[19:50:42] RUN weather__reference_evapotranspiration: Completed, applied setter 167 times, got 168 data points
+[19:50:42] TEST2 weather__reference_evapotranspiration: Strategy 'continuous' -> impact_score=0.0
+[19:50:42] TEST2 weather__reference_evapotranspiration: Trying strategy 'early'
+[19:50:42] RUN weather__reference_evapotranspiration=None strategy=early: Starting
+[19:50:42] RUN weather__reference_evapotranspiration: Init OK
+[19:50:42] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:42] RUN weather__reference_evapotranspiration: Completed, applied setter 0 times, got 168 data points
+[19:50:42] RUN weather__reference_evapotranspiration=50.0 strategy=early: Starting
+[19:50:43] RUN weather__reference_evapotranspiration: Init OK
+[19:50:43] RUN weather__reference_evapotranspiration: Will run 167 steps
+[19:50:43] RUN weather__reference_evapotranspiration: First setter applied at step 1
+[19:50:43] RUN weather__reference_evapotranspiration: Completed, applied setter 167 times, got 168 data points
+[19:50:43] TEST2 weather__reference_evapotranspiration: Strategy 'early' -> impact_score=0.0
+[19:50:43] VERDICT weather__reference_evapotranspiration: WEAK (area=209, pct_diff=1%, strategy=once, metric=soil_moisture)
+[19:50:43] 
+================================================================================
+[19:50:43] COMPREHENSIVE TEST: management__irrigation_amount
+[19:50:43] Description: Extreme irrigation (flood)
+[19:50:43] Extreme value: 500.0
+[19:50:43] ================================================================================
+[19:50:43] TEST1 management__irrigation_amount: Starting
+[19:50:43] TEST1 management__irrigation_amount: Init OK
+[19:50:43] TEST1 management__irrigation_amount: Initial value = 0.0
+[19:50:43] TEST1 management__irrigation_amount: Set to 500.0
+[19:50:43] TEST1 management__irrigation_amount: After = 0.0
+[19:50:43] TEST1 management__irrigation_amount: Changed = False (expected 500.0, got 0.0)
+[19:50:43] VERDICT management__irrigation_amount: BROKEN - Value doesn't change (set=500.0, got=0.0)
+[19:50:43] 
+================================================================================
+[19:50:43] COMPREHENSIVE TEST: management__irrigation_method
+[19:50:43] Description: Change irrigation method
+[19:50:43] Extreme value: 3.0
+[19:50:43] ================================================================================
+[19:50:43] TEST1 management__irrigation_method: Starting
+[19:50:43] TEST1 management__irrigation_method: Init OK
+[19:50:43] TEST1 management__irrigation_method: Initial value = 4.0
+[19:50:43] TEST1 management__irrigation_method: Set to 3.0
+[19:50:43] TEST1 management__irrigation_method: After = 3.0
+[19:50:43] TEST1 management__irrigation_method: Changed = True (expected 3.0, got 3.0)
+[19:50:43] TEST2 management__irrigation_method: Testing strategies...
+[19:50:43] TEST2 management__irrigation_method: Trying strategy 'once'
+[19:50:43] RUN management__irrigation_method=None strategy=once: Starting
+[19:50:43] RUN management__irrigation_method: Init OK
+[19:50:43] RUN management__irrigation_method: Will run 167 steps
+[19:50:43] RUN management__irrigation_method: Completed, applied setter 0 times, got 168 data points
+[19:50:43] RUN management__irrigation_method=3.0 strategy=once: Starting
+[19:50:43] RUN management__irrigation_method: Init OK
+[19:50:43] RUN management__irrigation_method: Will run 167 steps
+[19:50:43] RUN management__irrigation_method: First setter applied at step 10
+[19:50:44] RUN management__irrigation_method: Completed, applied setter 1 times, got 168 data points
+[19:50:44] TEST2 management__irrigation_method: Strategy 'once' -> impact_score=0.0
+[19:50:44] TEST2 management__irrigation_method: Trying strategy 'continuous'
+[19:50:44] RUN management__irrigation_method=None strategy=continuous: Starting
+[19:50:44] RUN management__irrigation_method: Init OK
+[19:50:44] RUN management__irrigation_method: Will run 167 steps
+[19:50:44] RUN management__irrigation_method: Completed, applied setter 0 times, got 168 data points
+[19:50:44] RUN management__irrigation_method=3.0 strategy=continuous: Starting
+[19:50:44] RUN management__irrigation_method: Init OK
+[19:50:44] RUN management__irrigation_method: Will run 167 steps
+[19:50:44] RUN management__irrigation_method: First setter applied at step 1
+[19:50:44] RUN management__irrigation_method: Completed, applied setter 167 times, got 168 data points
+[19:50:44] TEST2 management__irrigation_method: Strategy 'continuous' -> impact_score=0.0
+[19:50:44] TEST2 management__irrigation_method: Trying strategy 'early'
+[19:50:44] RUN management__irrigation_method=None strategy=early: Starting
+[19:50:44] RUN management__irrigation_method: Init OK
+[19:50:44] RUN management__irrigation_method: Will run 167 steps
+[19:50:44] RUN management__irrigation_method: Completed, applied setter 0 times, got 168 data points
+[19:50:44] RUN management__irrigation_method=3.0 strategy=early: Starting
+[19:50:45] RUN management__irrigation_method: Init OK
+[19:50:45] RUN management__irrigation_method: Will run 167 steps
+[19:50:45] RUN management__irrigation_method: First setter applied at step 1
+[19:50:45] RUN management__irrigation_method: Completed, applied setter 167 times, got 168 data points
+[19:50:45] TEST2 management__irrigation_method: Strategy 'early' -> impact_score=0.0
+[19:50:45] VERDICT management__irrigation_method: ERROR - All strategies failed
+[19:50:45] 
+================================================================================
+[19:50:45] COMPREHENSIVE TEST: management__mulch_cover
+[19:50:45] Description: Full mulch cover
+[19:50:45] Extreme value: 100.0
+[19:50:45] ================================================================================
+[19:50:45] TEST1 management__mulch_cover: Starting
+[19:50:45] TEST1 management__mulch_cover: Init OK
+[19:50:45] TEST1 management__mulch_cover: Initial value = 0.0
+[19:50:45] TEST1 management__mulch_cover: Set to 100.0
+[19:50:45] TEST1 management__mulch_cover: After = 100.0
+[19:50:45] TEST1 management__mulch_cover: Changed = True (expected 100.0, got 100.0)
+[19:50:45] TEST2 management__mulch_cover: Testing strategies...
+[19:50:45] TEST2 management__mulch_cover: Trying strategy 'once'
+[19:50:45] RUN management__mulch_cover=None strategy=once: Starting
+[19:50:45] RUN management__mulch_cover: Init OK
+[19:50:45] RUN management__mulch_cover: Will run 167 steps
+[19:50:45] RUN management__mulch_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:45] RUN management__mulch_cover=100.0 strategy=once: Starting
+[19:50:45] RUN management__mulch_cover: Init OK
+[19:50:45] RUN management__mulch_cover: Will run 167 steps
+[19:50:45] RUN management__mulch_cover: First setter applied at step 10
+[19:50:45] RUN management__mulch_cover: Completed, applied setter 1 times, got 168 data points
+[19:50:45] TEST2 management__mulch_cover: Strategy 'once' -> impact_score=0.0
+[19:50:45] TEST2 management__mulch_cover: Trying strategy 'continuous'
+[19:50:45] RUN management__mulch_cover=None strategy=continuous: Starting
+[19:50:45] RUN management__mulch_cover: Init OK
+[19:50:45] RUN management__mulch_cover: Will run 167 steps
+[19:50:46] RUN management__mulch_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:46] RUN management__mulch_cover=100.0 strategy=continuous: Starting
+[19:50:46] RUN management__mulch_cover: Init OK
+[19:50:46] RUN management__mulch_cover: Will run 167 steps
+[19:50:46] RUN management__mulch_cover: First setter applied at step 1
+[19:50:46] RUN management__mulch_cover: Completed, applied setter 167 times, got 168 data points
+[19:50:46] TEST2 management__mulch_cover: Strategy 'continuous' -> impact_score=0.0
+[19:50:46] TEST2 management__mulch_cover: Trying strategy 'early'
+[19:50:46] RUN management__mulch_cover=None strategy=early: Starting
+[19:50:46] RUN management__mulch_cover: Init OK
+[19:50:46] RUN management__mulch_cover: Will run 167 steps
+[19:50:46] RUN management__mulch_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:46] RUN management__mulch_cover=100.0 strategy=early: Starting
+[19:50:46] RUN management__mulch_cover: Init OK
+[19:50:46] RUN management__mulch_cover: Will run 167 steps
+[19:50:46] RUN management__mulch_cover: First setter applied at step 1
+[19:50:46] RUN management__mulch_cover: Completed, applied setter 167 times, got 168 data points
+[19:50:46] TEST2 management__mulch_cover: Strategy 'early' -> impact_score=0.0
+[19:50:46] VERDICT management__mulch_cover: ERROR - All strategies failed
+[19:50:46] 
+================================================================================
+[19:50:46] COMPREHENSIVE TEST: management__bund_height
+[19:50:46] Description: High bunds
+[19:50:46] Extreme value: 1.0
+[19:50:46] ================================================================================
+[19:50:46] TEST1 management__bund_height: Starting
+[19:50:47] TEST1 management__bund_height: Init OK
+[19:50:47] TEST1 management__bund_height: Initial value = 0.0
+[19:50:47] TEST1 management__bund_height: Set to 1.0
+[19:50:47] TEST1 management__bund_height: After = 1.0
+[19:50:47] TEST1 management__bund_height: Changed = True (expected 1.0, got 1.0)
+[19:50:47] TEST2 management__bund_height: Testing strategies...
+[19:50:47] TEST2 management__bund_height: Trying strategy 'once'
+[19:50:47] RUN management__bund_height=None strategy=once: Starting
+[19:50:47] RUN management__bund_height: Init OK
+[19:50:47] RUN management__bund_height: Will run 167 steps
+[19:50:47] RUN management__bund_height: Completed, applied setter 0 times, got 168 data points
+[19:50:47] RUN management__bund_height=1.0 strategy=once: Starting
+[19:50:47] RUN management__bund_height: Init OK
+[19:50:47] RUN management__bund_height: Will run 167 steps
+[19:50:47] RUN management__bund_height: First setter applied at step 10
+[19:50:47] RUN management__bund_height: Completed, applied setter 1 times, got 168 data points
+[19:50:47] TEST2 management__bund_height: Strategy 'once' -> impact_score=19984.3
+[19:50:47] TEST2 management__bund_height: Trying strategy 'continuous'
+[19:50:47] RUN management__bund_height=None strategy=continuous: Starting
+[19:50:47] RUN management__bund_height: Init OK
+[19:50:47] RUN management__bund_height: Will run 167 steps
+[19:50:47] RUN management__bund_height: Completed, applied setter 0 times, got 168 data points
+[19:50:47] RUN management__bund_height=1.0 strategy=continuous: Starting
+[19:50:47] RUN management__bund_height: Init OK
+[19:50:47] RUN management__bund_height: Will run 167 steps
+[19:50:47] RUN management__bund_height: First setter applied at step 1
+[19:50:48] RUN management__bund_height: Completed, applied setter 167 times, got 168 data points
+[19:50:48] TEST2 management__bund_height: Strategy 'continuous' -> impact_score=21312.4
+[19:50:48] TEST2 management__bund_height: Trying strategy 'early'
+[19:50:48] RUN management__bund_height=None strategy=early: Starting
+[19:50:48] RUN management__bund_height: Init OK
+[19:50:48] RUN management__bund_height: Will run 167 steps
+[19:50:48] RUN management__bund_height: Completed, applied setter 0 times, got 168 data points
+[19:50:48] RUN management__bund_height=1.0 strategy=early: Starting
+[19:50:48] RUN management__bund_height: Init OK
+[19:50:48] RUN management__bund_height: Will run 167 steps
+[19:50:48] RUN management__bund_height: First setter applied at step 1
+[19:50:48] RUN management__bund_height: Completed, applied setter 167 times, got 168 data points
+[19:50:48] TEST2 management__bund_height: Strategy 'early' -> impact_score=21312.4
+[19:50:48] VERDICT management__bund_height: WORKS (area=20192, pct_diff=99%, strategy=continuous, metric=soil_moisture)
+[19:50:48] 
+================================================================================
+[19:50:48] COMPREHENSIVE TEST: management__weed_cover
+[19:50:48] Description: Full weed infestation
+[19:50:48] Extreme value: 100.0
+[19:50:48] ================================================================================
+[19:50:48] TEST1 management__weed_cover: Starting
+[19:50:48] TEST1 management__weed_cover: Init OK
+[19:50:48] TEST1 management__weed_cover: Initial value = 0.0
+[19:50:48] TEST1 management__weed_cover: Set to 100.0
+[19:50:48] TEST1 management__weed_cover: After = 100.0
+[19:50:48] TEST1 management__weed_cover: Changed = True (expected 100.0, got 100.0)
+[19:50:48] TEST2 management__weed_cover: Testing strategies...
+[19:50:48] TEST2 management__weed_cover: Trying strategy 'once'
+[19:50:48] RUN management__weed_cover=None strategy=once: Starting
+[19:50:48] RUN management__weed_cover: Init OK
+[19:50:48] RUN management__weed_cover: Will run 167 steps
+[19:50:49] RUN management__weed_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:49] RUN management__weed_cover=100.0 strategy=once: Starting
+[19:50:49] RUN management__weed_cover: Init OK
+[19:50:49] RUN management__weed_cover: Will run 167 steps
+[19:50:49] RUN management__weed_cover: First setter applied at step 10
+[19:50:49] RUN management__weed_cover: Completed, applied setter 1 times, got 168 data points
+[19:50:49] TEST2 management__weed_cover: Strategy 'once' -> impact_score=259.7
+[19:50:49] TEST2 management__weed_cover: Trying strategy 'continuous'
+[19:50:49] RUN management__weed_cover=None strategy=continuous: Starting
+[19:50:49] RUN management__weed_cover: Init OK
+[19:50:49] RUN management__weed_cover: Will run 167 steps
+[19:50:49] RUN management__weed_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:49] RUN management__weed_cover=100.0 strategy=continuous: Starting
+[19:50:49] RUN management__weed_cover: Init OK
+[19:50:49] RUN management__weed_cover: Will run 167 steps
+[19:50:49] RUN management__weed_cover: First setter applied at step 1
+[19:50:49] RUN management__weed_cover: Completed, applied setter 167 times, got 168 data points
+[19:50:49] TEST2 management__weed_cover: Strategy 'continuous' -> impact_score=0.0
+[19:50:49] TEST2 management__weed_cover: Trying strategy 'early'
+[19:50:49] RUN management__weed_cover=None strategy=early: Starting
+[19:50:50] RUN management__weed_cover: Init OK
+[19:50:50] RUN management__weed_cover: Will run 167 steps
+[19:50:50] RUN management__weed_cover: Completed, applied setter 0 times, got 168 data points
+[19:50:50] RUN management__weed_cover=100.0 strategy=early: Starting
+[19:50:50] RUN management__weed_cover: Init OK
+[19:50:50] RUN management__weed_cover: Will run 167 steps
+[19:50:50] RUN management__weed_cover: First setter applied at step 1
+[19:50:50] RUN management__weed_cover: Completed, applied setter 167 times, got 168 data points
+[19:50:50] TEST2 management__weed_cover: Strategy 'early' -> impact_score=0.0
+[19:50:50] VERDICT management__weed_cover: WEAK (area=127, pct_diff=1%, strategy=once, metric=soil_moisture)
+[19:50:50] 
+================================================================================
+[19:50:50] COMPREHENSIVE TEST: atmosphere__co2_concentration
+[19:50:50] Description: Extreme CO2 enrichment
+[19:50:50] Extreme value: 2000.0
+[19:50:50] ================================================================================
+[19:50:50] TEST1 atmosphere__co2_concentration: Starting
+[19:50:50] TEST1 atmosphere__co2_concentration: Init OK
+[19:50:50] TEST1 atmosphere__co2_concentration: Initial value = 404.41
+[19:50:50] TEST1 atmosphere__co2_concentration: Set to 2000.0
+[19:50:50] TEST1 atmosphere__co2_concentration: After = 2000.0
+[19:50:50] TEST1 atmosphere__co2_concentration: Changed = True (expected 2000.0, got 2000.0)
+[19:50:50] TEST2 atmosphere__co2_concentration: Testing strategies...
+[19:50:50] TEST2 atmosphere__co2_concentration: Trying strategy 'once'
+[19:50:50] RUN atmosphere__co2_concentration=None strategy=once: Starting
+[19:50:50] RUN atmosphere__co2_concentration: Init OK
+[19:50:50] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:50] RUN atmosphere__co2_concentration: Completed, applied setter 0 times, got 168 data points
+[19:50:50] RUN atmosphere__co2_concentration=2000.0 strategy=once: Starting
+[19:50:50] RUN atmosphere__co2_concentration: Init OK
+[19:50:50] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:50] RUN atmosphere__co2_concentration: First setter applied at step 10
+[19:50:51] RUN atmosphere__co2_concentration: Completed, applied setter 1 times, got 168 data points
+[19:50:51] TEST2 atmosphere__co2_concentration: Strategy 'once' -> impact_score=0.0
+[19:50:51] TEST2 atmosphere__co2_concentration: Trying strategy 'continuous'
+[19:50:51] RUN atmosphere__co2_concentration=None strategy=continuous: Starting
+[19:50:51] RUN atmosphere__co2_concentration: Init OK
+[19:50:51] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:51] RUN atmosphere__co2_concentration: Completed, applied setter 0 times, got 168 data points
+[19:50:51] RUN atmosphere__co2_concentration=2000.0 strategy=continuous: Starting
+[19:50:51] RUN atmosphere__co2_concentration: Init OK
+[19:50:51] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:51] RUN atmosphere__co2_concentration: First setter applied at step 1
+[19:50:51] RUN atmosphere__co2_concentration: Completed, applied setter 167 times, got 168 data points
+[19:50:51] TEST2 atmosphere__co2_concentration: Strategy 'continuous' -> impact_score=0.0
+[19:50:51] TEST2 atmosphere__co2_concentration: Trying strategy 'early'
+[19:50:51] RUN atmosphere__co2_concentration=None strategy=early: Starting
+[19:50:51] RUN atmosphere__co2_concentration: Init OK
+[19:50:51] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:51] RUN atmosphere__co2_concentration: Completed, applied setter 0 times, got 168 data points
+[19:50:51] RUN atmosphere__co2_concentration=2000.0 strategy=early: Starting
+[19:50:52] RUN atmosphere__co2_concentration: Init OK
+[19:50:52] RUN atmosphere__co2_concentration: Will run 167 steps
+[19:50:52] RUN atmosphere__co2_concentration: First setter applied at step 1
+[19:50:52] RUN atmosphere__co2_concentration: Completed, applied setter 167 times, got 168 data points
+[19:50:52] TEST2 atmosphere__co2_concentration: Strategy 'early' -> impact_score=0.0
+[19:50:52] VERDICT atmosphere__co2_concentration: ERROR - All strategies failed
+[19:50:52] 
+================================================================================
+[19:50:52] COMPREHENSIVE TEST: crop__fertility_stress
+[19:50:52] Description: Zero fertility (nutrient stress)
+[19:50:52] Extreme value: 0.0
+[19:50:52] ================================================================================
+[19:50:52] TEST1 crop__fertility_stress: Starting
+[19:50:52] TEST1 crop__fertility_stress: Init OK
+[19:50:52] TEST1 crop__fertility_stress: Initial value = 9.0
+[19:50:52] TEST1 crop__fertility_stress: Set to 0.0
+[19:50:52] TEST1 crop__fertility_stress: After = 0.0
+[19:50:52] TEST1 crop__fertility_stress: Changed = True (expected 0.0, got 0.0)
+[19:50:52] TEST2 crop__fertility_stress: Testing strategies...
+[19:50:52] TEST2 crop__fertility_stress: Trying strategy 'once'
+[19:50:52] RUN crop__fertility_stress=None strategy=once: Starting
+[19:50:52] RUN crop__fertility_stress: Init OK
+[19:50:52] RUN crop__fertility_stress: Will run 167 steps
+[19:50:52] RUN crop__fertility_stress: Completed, applied setter 0 times, got 168 data points
+[19:50:52] RUN crop__fertility_stress=0.0 strategy=once: Starting
+[19:50:52] RUN crop__fertility_stress: Init OK
+[19:50:52] RUN crop__fertility_stress: Will run 167 steps
+[19:50:52] RUN crop__fertility_stress: First setter applied at step 10
+[19:50:52] RUN crop__fertility_stress: Completed, applied setter 1 times, got 168 data points
+[19:50:52] TEST2 crop__fertility_stress: Strategy 'once' -> impact_score=0.0
+[19:50:52] TEST2 crop__fertility_stress: Trying strategy 'continuous'
+[19:50:52] RUN crop__fertility_stress=None strategy=continuous: Starting
+[19:50:52] RUN crop__fertility_stress: Init OK
+[19:50:52] RUN crop__fertility_stress: Will run 167 steps
+[19:50:53] RUN crop__fertility_stress: Completed, applied setter 0 times, got 168 data points
+[19:50:53] RUN crop__fertility_stress=0.0 strategy=continuous: Starting
+[19:50:53] RUN crop__fertility_stress: Init OK
+[19:50:53] RUN crop__fertility_stress: Will run 167 steps
+[19:50:53] RUN crop__fertility_stress: First setter applied at step 1
+[19:50:53] RUN crop__fertility_stress: Completed, applied setter 167 times, got 168 data points
+[19:50:53] TEST2 crop__fertility_stress: Strategy 'continuous' -> impact_score=0.0
+[19:50:53] TEST2 crop__fertility_stress: Trying strategy 'early'
+[19:50:53] RUN crop__fertility_stress=None strategy=early: Starting
+[19:50:53] RUN crop__fertility_stress: Init OK
+[19:50:53] RUN crop__fertility_stress: Will run 167 steps
+[19:50:53] RUN crop__fertility_stress: Completed, applied setter 0 times, got 168 data points
+[19:50:53] RUN crop__fertility_stress=0.0 strategy=early: Starting
+[19:50:53] RUN crop__fertility_stress: Init OK
+[19:50:53] RUN crop__fertility_stress: Will run 167 steps
+[19:50:53] RUN crop__fertility_stress: First setter applied at step 1
+[19:50:53] RUN crop__fertility_stress: Completed, applied setter 167 times, got 168 data points
+[19:50:53] TEST2 crop__fertility_stress: Strategy 'early' -> impact_score=0.0
+[19:50:53] VERDICT crop__fertility_stress: ERROR - All strategies failed
+[19:50:53] 
+================================================================================
+[19:50:53] FINAL SUMMARY
+[19:50:53] ================================================================================
+[19:50:53] 
+Tested: 11 variables
+  ✅ Working strongly: 1
+  ⚠️  Working weakly:  3
+  ❌ No effect:       2
+  💀 Broken (can't set): 1
+  ⛔ Errors:          4
+[19:50:53] 
+✅ Variables that WORK:
+[19:50:53]   • management__bund_height [continuous] area=20192, 99% differ
+[19:50:53] 
+⚠️  Variables with WEAK effect:
+[19:50:53]   • weather__rainfall_amount [once] area=216
+[19:50:53]   • weather__reference_evapotranspiration [once] area=209
+[19:50:53]   • management__weed_cover [once] area=127
+[19:50:53] 
+❌ Variables with NO effect:
+[19:50:53]   • weather__air_temperature_max area=0
+[19:50:53]   • weather__air_temperature_min area=1
+[19:50:53] 
+💀 Variables that are BROKEN:
+[19:50:53]   • management__irrigation_amount - set_value() does not change the value
+[19:50:53] 
+⛔ Variables with ERRORS:
+[19:50:53]   • management__irrigation_method - All application strategies failed
+[19:50:53]   • management__mulch_cover - All application strategies failed
+[19:50:53]   • atmosphere__co2_concentration - All application strategies failed
+[19:50:53]   • crop__fertility_stress - All application strategies failed
+[19:50:53] 
+================================================================================
+[19:50:53] TEST COMPLETE. Log saved to: /mnt/d/KNP/aquacrop-bmi/outputs/setter_test_20251114_195036/LOGS/setter_test_20251114_195036.log

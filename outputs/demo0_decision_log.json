@@ -13,12 +13,12 @@
   {
     "day": 100,
     "stage": "mid_season",
-    "decision": "\u26a0\ufe0f  STRESS DETECTED - Emergency intervention",
-    "action": "emergency_intervention",
+    "decision": "\u2705 ON TRACK - Maintain current management",
+    "action": "maintain",
     "conditions": {
-      "cc": 39.615233132845724,
-      "bio": 3.3785468615940157,
-      "moisture": 394.19069611461356
+      "cc": 67.98358858282944,
+      "bio": 0.27152927734752896,
+      "moisture": 362.6889497127879
     }
   }
 ]

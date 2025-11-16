@@ -1068,6 +1068,17 @@ type(rep_DayEventInt), dimension(5) :: IrriBeforeSeason
 type(rep_DayEventInt), dimension(5) :: IrriAfterSeason
 
 
+! These allow BMI setters to persist across ReadClimateNextDay() calls
+logical :: BMI_has_Tmin_override = .false.
+logical :: BMI_has_Tmax_override = .false.
+logical :: BMI_has_Rain_override = .false.
+logical :: BMI_has_ETo_override = .false.
+real(dp) :: BMI_Tmin_override_value = 0.0_dp
+real(dp) :: BMI_Tmax_override_value = 0.0_dp
+real(dp) :: BMI_Rain_override_value = 0.0_dp
+real(dp) :: BMI_ETo_override_value = 0.0_dp
+
+
 contains
 
 

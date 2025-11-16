@@ -22,7 +22,16 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetManagement_WeedRC, SetManagement_WeedRC, &
                      ! Irrigation getters/setters
                      GetIrrigation, SetIrrigation, &
-                     GetSumWaBal_Irrigation, SetSumWabal_Irrigation
+                    GetSumWaBal_Irrigation, SetSumWabal_Irrigation, &
+                     ! BMI persistent weather overrides
+                     BMI_has_Tmin_override, &
+                     BMI_has_Tmax_override, &
+                     BMI_has_Rain_override, &
+                     BMI_has_ETo_override, &
+                     BMI_Tmin_override_value, &
+                     BMI_Tmax_override_value, &
+                     BMI_Rain_override_value, &
+                     BMI_ETo_override_value
 use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
                   GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
                   GetSumWaBal_Tact, GetSumWaBal_Eact, GetSumWaBal_BiomassPot, & ! Phase 4
@@ -132,7 +141,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 11 ! Phase 6: added CO2, Mulch, Bund, Weed
+integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
 integer, parameter :: output_item_count = 17 ! Phase 3: 5 soil layer moisture outputs
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
@@ -147,7 +156,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'atmosphere__co2_concentration        ', &
     'management__mulch_cover              ', &
     'management__bund_height              ', &
-    'management__weed_cover               ' &
+    'management__weed_cover               ', &
+    'bmi__clear_weather_overrides         ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -615,7 +625,7 @@ case('management__irrigation_amount')
     ! Get cumulative irrigation amount applied
     ! Phase 2 addition: Dynamic irrigation tracking
     ! Units: mm (cumulative)
-    dest(1) = real(GetPreviousSum_Irrigation(), c_double)
+    dest(1) = real(GetIrrigation(), c_double)  
 case('atmosphere__co2_concentration')
     ! Get current atmospheric CO2 concentration
     ! Phase 6 addition: Climate change scenarios
@@ -799,18 +809,26 @@ case('crop__fertility_stress')
     return
 case('weather__rainfall_amount')
     ! Set current day's rainfall in mm/day
-    ! Convert from c_double to dp, ensure non-negative
-    call SetRain(real(max(0.0d0, src(1)), dp))
+    ! Phase 7: Use persistent override system
+    BMI_Rain_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_Rain_override = .true.
+    call SetRain(BMI_Rain_override_value)
     bmi_status = BMI_SUCCESS
     return
 case('weather__air_temperature_min')
     ! Set current day's minimum air temperature in degrees Celsius
-    call SetTmin(real(src(1), dp))
+    ! Phase 7: Use persistent override system
+    BMI_Tmin_override_value = real(src(1), dp)
+    BMI_has_Tmin_override = .true.
+    call SetTmin(BMI_Tmin_override_value)
     bmi_status = BMI_SUCCESS
     return
 case('weather__air_temperature_max')
     ! Set current day's maximum air temperature in degrees Celsius
-    call SetTmax(real(src(1), dp))
+    ! Phase 7: Use persistent override system
+    BMI_Tmax_override_value = real(src(1), dp)
+    BMI_has_Tmax_override = .true.
+    call SetTmax(BMI_Tmax_override_value)
     bmi_status = BMI_SUCCESS
     return
 case('management__irrigation_method') ! hand added 20:02 11.11.25
@@ -821,8 +839,10 @@ case('management__irrigation_method') ! hand added 20:02 11.11.25
     return
 case('weather__reference_evapotranspiration')
     ! Set current day's reference evapotranspiration (ET0) in mm/day
-    ! Convert from c_double to dp, ensure non-negative
-    call SetETo(real(max(0.0d0, src(1)), dp))
+    ! Phase 7: Use persistent override system
+    BMI_ETo_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_ETo_override = .true.
+    call SetETo(BMI_ETo_override_value)
     bmi_status = BMI_SUCCESS
     return
 case('management__irrigation_amount')
@@ -860,6 +880,18 @@ case('management__weed_cover')
     ! Phase 6 addition: Field management
     ! Units: percent (0-100)
     call SetManagement_WeedRC(int(max(0.0d0, min(100.0d0, src(1))), int8))
+    bmi_status = BMI_SUCCESS
+    return
+case('bmi__clear_weather_overrides')
+    ! Clear all weather overrides, return to file-based values
+    ! Phase 7: Reset all persistent weather overrides
+    ! Any non-zero value will clear all overrides
+    if (src(1) /= 0.0d0) then
+        BMI_has_Tmin_override = .false.
+        BMI_has_Tmax_override = .false.
+        BMI_has_Rain_override = .false.
+        BMI_has_ETo_override = .false.
+    end if
     bmi_status = BMI_SUCCESS
     return
 case default

@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from SALib.sample import sobol
 
-from aquacrop_bmi.data import get_crop_params, specs
-from aquacrop_bmi.models import (
+from data import get_crop_params, specs
+from models import (
     CalibrationSeason,
     CropCalibrationInput,
     CropCalibrationResult,

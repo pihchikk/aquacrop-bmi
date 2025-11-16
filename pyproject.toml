@@ -60,8 +60,9 @@ ignore = [
 known-local-folder = ["aquacrop_bmi"]  # Change to your package name
 
 [tool.hatch.build.targets.wheel]
+packages = ["src/aquacrop_bmi"]
 pure-python = false
-artifacts = ["aquacrop_bmi/wrapper/aquacrop*"]
+artifacts = ["src/aquacrop_bmi/wrapper/aquacrop*"]
 
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "build.py"

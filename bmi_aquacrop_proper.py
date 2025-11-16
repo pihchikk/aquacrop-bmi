@@ -27,10 +27,16 @@ from aquacrop_bmi.project import AquacropProject
 from aquacrop_bmi.util import loads_crop_file, get_weather_data, get_elevation
 from aquacrop_bmi.soil_texture import get_soil_params
 from aquacrop_bmi.data import get_crop_params
+from aquacrop_bmi.models import (
+    ScenariosSimulationInput,
+    CropCalibrationInput,
+    FertilityStressCalibrationInput,
+    Point3D,
+)
 from aquacrop_bmi_babel import AquaCrop as FortranBMI  # ← ОСТАВИТЬ КАК ЕСТЬ
 
 if TYPE_CHECKING:
-    from models import Season
+    from aquacrop_bmi.models import Season
 
 
 class BmiAquaCrop(Bmi):

@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from SALib.sample import sobol
 
-from data import get_crop_params, specs
-from models import (
+from .data import get_crop_params, specs
+from .models import (
     CalibrationSeason,
     CropCalibrationInput,
     CropCalibrationResult,
@@ -24,10 +24,10 @@ from models import (
     Season,
     SoilLayer,
 )
-from aquacrop_bmi.project import AquacropProject, dump_crop_file
-from aquacrop_bmi.settings import settings
-from aquacrop_bmi.soil_texture import get_soil_params
-from aquacrop_bmi.util import get_elevation, get_weather_data, loads_crop_file
+from .project import AquacropProject, dump_crop_file
+from .settings import settings
+from .soil_texture import get_soil_params
+from .util import get_elevation, get_weather_data, loads_crop_file
 
 
 

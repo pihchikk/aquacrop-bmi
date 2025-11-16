@@ -6,10 +6,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Self
 
-from data import DEFAULT_DATA_DIR, specs, templates
-from soil_texture import SoilLayerParams, curve_number_calc, rew_calc
-from util import dump_crop_file, elapse_date
-from wrapper import AQUACROP_EXE
+from .data import DEFAULT_DATA_DIR, specs, templates
+from .soil_texture import SoilLayerParams, curve_number_calc, rew_calc
+from .util import dump_crop_file, elapse_date
+from .wrapper import AQUACROP_EXE
 
 
 

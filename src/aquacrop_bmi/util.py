@@ -8,8 +8,8 @@ import httpx
 import numpy as np
 from AgroMetEquations.evapotranspiration_equations import fao56_penman_monteith
 
-from data import specs
-from settings import settings
+from .data import specs
+from .settings import settings
 
 
 

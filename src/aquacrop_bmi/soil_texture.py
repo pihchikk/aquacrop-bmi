@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from soiltexture.texture import tables as soiltexture_tables
 
-from models import SoilLayer, SoilLayerWithConstants, SoilLayerWithTexture
-from util import ask_rosetta
+from .models import SoilLayer, SoilLayerWithConstants, SoilLayerWithTexture
+from .util import ask_rosetta
 
 
 

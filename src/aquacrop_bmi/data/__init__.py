@@ -1,7 +1,7 @@
 from enum import Enum
 from pathlib import Path
 
-from util import CropData, loads_crop_file
+from ..util import CropData, loads_crop_file
 
 
 

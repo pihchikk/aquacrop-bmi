@@ -1,0 +1,130 @@
+"""
+A simple scenario runner for Aquacrop-BMI
+"""
+import os
+import sys
+import json
+from pathlib import Path
+import numpy as np
+
+
+def safe_getcwd():
+    """Get current working directory with fallback"""
+    try:
+        return Path(os.getcwd())
+    except FileNotFoundError:
+        return Path("/mnt/d")
+
+from .bmi_aquacrop import BmiAquaCrop
+
+def run_scenario(scenario_file: Path):
+    scenario_file = Path(scenario_file).resolve()
+    original_cwd = str(safe_getcwd())
+    
+    with open(scenario_file) as f:
+        scenario_data = json.load(f)
+    
+    num_seasons = len(scenario_data.get('seasons', [1]))
+    num_soils = len(scenario_data.get('soils', [1]))
+    total_runs = num_seasons * num_soils
+    
+    print(f"Seasons: {num_seasons}, Soils: {num_soils}, Total runs: {total_runs}\n")
+    
+    all_results = []
+    model = None
+    run_count = 0
+    
+    try:
+        model = BmiAquaCrop()
+        model.initialize(str(scenario_file))
+        
+        while True:
+            run_count += 1
+            season_idx = model._current_season_idx
+            soil_idx = model._current_soil_idx
+            
+            print(f"\n{'='*60}")
+            print(f"RUN {run_count}/{total_runs}")
+            print(f"SEASON {season_idx + 1}/{num_seasons}, SOIL {soil_idx + 1}/{num_soils}")
+            print(f"{'='*60}")
+            
+            start_time = model.get_start_time()
+            end_time = model.get_end_time()
+            n_steps = int(end_time - start_time)
+            
+            print(f"Days to simulate: {n_steps}\nRunning...")
+            
+            season_results = []
+            dest = np.empty(1, dtype=np.float64)
+            
+            for step in range(n_steps + 1):
+                current_time = model.get_current_time()
+                
+                model.get_value("crop__yield", dest)
+                yield_val = float(dest[0])
+                
+                model.get_value("crop__biomass", dest)
+                biomass = float(dest[0])
+                
+                season_results.append({
+                    "day": int(current_time),
+                    "yield": yield_val,
+                    "biomass": biomass
+                })
+                
+                if step % 30 == 0 or step == n_steps:
+                    print(f"  Day {int(current_time):3d}: Yield={yield_val:.2f} t/ha")
+                
+                if current_time < end_time:
+                    model.update()
+            
+            print(f"Final: {season_results[-1]['yield']:.2f} t/ha")
+            all_results.append({
+                'season': season_idx + 1,
+                'soil': soil_idx + 1,
+                'results': season_results
+            })
+            
+            has_next = model.reinitialize_next_season()
+            if not has_next:
+                break
+    
+    finally:
+        os.chdir(original_cwd)
+    
+    print(f"{'Run':<6} {'Season':<10} {'Soil':<10} {'Simulated':<15}")
+    
+    for idx, result in enumerate(all_results, 1):
+        season = result['season']
+        soil = result['soil']
+        sim_yield = result['results'][-1]['yield']
+        print(f"{idx:<6} {season:<10} {soil:<10} {sim_yield:<15.2f}")
+    
+    return all_results
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python aquacrop_runner.py <scenario.json>")
+        print("\nExamples:")
+        print("  python aquacrop_runner.py scenarios/crop-calibration.json")
+        print("  python aquacrop_runner.py my_custom_scenario.json")
+        return 1
+    
+    scenario_file = Path(sys.argv[1]).resolve()
+    
+    if not scenario_file.exists():
+        print(f"ERROR: File not found: {scenario_file}")
+        return 1
+    
+    try:
+        results = run_scenario(scenario_file)
+        return 0
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

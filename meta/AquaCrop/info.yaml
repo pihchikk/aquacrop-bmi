@@ -1,0 +1,15 @@
+summary: >
+  AquaCrop is a crop water productivity model developed by FAO to simulate crop 
+  yield response to water availability and management. It uses a soil water balance 
+  approach combined with crop growth functions to predict biomass and grain yield 
+  under various water stress scenarios. The current implementation is developed by FRC V.V. Dokuchaev Soil Institute
+
+url: https://www.fao.org/aquacrop
+
+author: Food and Agriculture Organization of the United Nations (FAO)
+
+email: alperf97@gmail.com
+
+version: "0.1"
+
+license: Custom

@@ -1,4 +1,4 @@
 name: aquacrop_bmi_babel
-language: fortran
+language: python
 package: aquacrop_bmi_babel
 class: AquaCrop

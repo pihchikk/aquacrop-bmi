@@ -1,0 +1,52 @@
+language = "fortran"
+
+[library.AquaCrop]
+language = "fortran"
+library = "aquacropbmi"
+header = "bmiaquacropf.mod"
+entry_point = "bmi_aquacrop"
+
+[components.AquaCrop]
+language = "fortran"
+library = "aquacropbmi"
+header = "bmiaquacropf.mod"
+entry_point = "bmi_aquacrop"
+
+[build]
+undef_macros = []
+define_macros = []
+libraries = [
+    "aquacropbmi",
+]
+library_dirs = [
+    "/usr/local/lib",
+]
+include_dirs = [
+    "/usr/local/include",
+]
+extra_compile_args = [
+    "-O2",
+    "-fPIC",
+]
+
+[package]
+name = "aquacrop_bmi_babel"
+requirements = []
+
+[info]
+github_username = "pihchikk"
+package_author = "pihchikk"
+package_author_email = "alperf97@gmail.com"
+package_license = "MIT License"
+summary = "PyMT plugin for AquaCrop"
+
+[ci]
+python_version = [
+    "3.11",
+    "3.12",
+    "3.13",
+]
+os = [
+    "linux",
+    "macos",
+]

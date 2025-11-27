@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 """
 A simple scenario runner for Aquacrop-BMI
+Runs simulation scenarios only (not calibration)
 """
 import os
 import sys
@@ -7,27 +9,44 @@ import json
 from pathlib import Path
 import numpy as np
 
-
-def safe_getcwd():
-    """Get current working directory with fallback"""
-    try:
-        return Path(os.getcwd())
-    except FileNotFoundError:
-        return Path("/mnt/d")
-
 from .bmi_aquacrop import BmiAquaCrop
+
+
+def detect_scenario_type(config: dict) -> str:
+    """Detect scenario type from JSON structure"""
+    if 'crop_ref' in config and 'crop_params' in config:
+        return 'crop-calibration'
+    elif 'crop_file' in config and 'fertility_stress_range' in config:
+        return 'fertility-stress-calibration'
+    elif 'crop_file' in config and 'scenarios' not in config:
+        return 'simulation-data'
+    else:
+        return 'scenarios-simulation'
+
 
 def run_scenario(scenario_file: Path):
     scenario_file = Path(scenario_file).resolve()
-    original_cwd = str(safe_getcwd())
+    original_cwd = os.getcwd()
     
     with open(scenario_file) as f:
         scenario_data = json.load(f)
+    
+    # Check scenario type
+    scenario_type = detect_scenario_type(scenario_data)
+    
+    if scenario_type in ['crop-calibration', 'fertility-stress-calibration']:
+        print(f"ERROR: This is a {scenario_type} scenario")
+        print(f"  For calibration, use: python -m aquacrop_bmi_babel.calibrate_bmi {scenario_file}")
+        print(f"  This runner only supports simulation scenarios:")
+        print(f"    - simulation-data (AquaCropSimulationData.json)")
+        print(f"    - scenarios-simulation (scenarios-simulation.json)")
+        return None
     
     num_seasons = len(scenario_data.get('seasons', [1]))
     num_soils = len(scenario_data.get('soils', [1]))
     total_runs = num_seasons * num_soils
     
+    print(f"Scenario type: {scenario_type}")
     print(f"Seasons: {num_seasons}, Soils: {num_soils}, Total runs: {total_runs}\n")
     
     all_results = []
@@ -90,8 +109,16 @@ def run_scenario(scenario_file: Path):
                 break
     
     finally:
+        if model:
+            try:
+                model.finalize()
+            except:
+                pass
         os.chdir(original_cwd)
     
+    print(f"\n{'='*60}")
+    print(f"SUMMARY")
+    print(f"{'='*60}")
     print(f"{'Run':<6} {'Season':<10} {'Soil':<10} {'Simulated':<15}")
     
     for idx, result in enumerate(all_results, 1):
@@ -102,12 +129,14 @@ def run_scenario(scenario_file: Path):
     
     return all_results
 
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python aquacrop_runner.py <scenario.json>")
         print("\nExamples:")
-        print("  python aquacrop_runner.py scenarios/crop-calibration.json")
-        print("  python aquacrop_runner.py my_custom_scenario.json")
+        print("  python aquacrop_runner.py scenarios/scenarios-simulation.json")
+        print("  python aquacrop_runner.py scenarios/AquaCropSimulationData.json")
+        print("\nNote: For calibration scenarios, use calibrate_bmi.py instead")
         return 1
     
     scenario_file = Path(sys.argv[1]).resolve()
@@ -118,6 +147,8 @@ def main():
     
     try:
         results = run_scenario(scenario_file)
+        if results is None:
+            return 1
         return 0
     except Exception as e:
         print(f"\nERROR: {e}")

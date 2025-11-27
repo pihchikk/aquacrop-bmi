@@ -32,10 +32,20 @@ class AquaCrop(FortranAquaCrop):
         if config_path.suffix == '.json':
             # Preprocess JSON → .PRO via BmiAquaCrop
             temp_cwd = Path(tempfile.mkdtemp(prefix="aquacrop_prep_"))
+            data_root = None  # Initialize before try
             
             try:
-                prep = BmiAquaCrop(original_cwd=temp_cwd)
+                # Pass REAL original_cwd, not temp_cwd!
+                prep = BmiAquaCrop(original_cwd=self._original_cwd)
                 prep.initialize(str(config_path))
+                
+                # Check if calibration returned early
+                if getattr(prep, '_calibration_only', False):
+                    print("Note: Calibration completed. BMI not initialized for simulation.")
+                    print("      Create a new instance with the generated scenarios file to run simulation.")
+                    self._data_root = prep._data_root if hasattr(prep, '_data_root') else None
+                    self._finalized = True  # Mark as "done" since we won't run simulation
+                    return
                 
                 data_root = Path(prep._data_root)
                 project_file = data_root / 'LIST' / 'project.PRO'
@@ -43,15 +53,47 @@ class AquaCrop(FortranAquaCrop):
                 if not project_file.exists():
                     raise FileNotFoundError(f"Preprocessing failed: {project_file}")
                 
-                # Close preprocessing Fortran BMI
-                prep._fortran_bmi.finalize()
+                # Check if data is already in permanent location or needs moving
+                permanent_location = self._original_cwd / "outputs" / data_root.name
+                
+                if data_root != permanent_location and not data_root.is_relative_to(self._original_cwd):
+                    # Data is in temp_cwd, need to move to permanent location
+                    permanent_location.parent.mkdir(parents=True, exist_ok=True)
+                    
+                    if permanent_location.exists():
+                        shutil.rmtree(permanent_location)
+                    shutil.move(str(data_root), str(permanent_location))
+                    
+                    # Update paths to permanent location
+                    data_root = permanent_location
+                    project_file = data_root / 'LIST' / 'project.PRO'
+                else:
+                    # Data already in permanent location, no move needed
+                    pass
+                
+                # Change back to data_root before finalizing (for OUTP/AllDone.OUT)
+                try:
+                    os.chdir(data_root)
+                    prep._fortran_bmi.finalize()
+                except Exception as e:
+                    print(f"Warning: prep finalize failed: {e}")
+                finally:
+                    # Return to original cwd
+                    try:
+                        os.chdir(self._original_cwd)
+                    except:
+                        pass
+                
                 del prep
                 
                 self._data_root = data_root
                 print(f"Using preprocessed data: {data_root}")
                 
             finally:
-                shutil.rmtree(temp_cwd, ignore_errors=True)
+                # Only delete temp_cwd if data_root is NOT inside it
+                if data_root and not data_root.is_relative_to(temp_cwd):
+                    shutil.rmtree(temp_cwd, ignore_errors=True)
+                # else: data is still in temp_cwd, don't delete yet
             
             # Initialize main Fortran BMI with .PRO
             super().initialize(str(project_file))

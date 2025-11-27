@@ -9,7 +9,6 @@ BMI wrapper for calibration
 from __future__ import annotations
 
 import json
-import httpx
 import shutil
 import os
 from pathlib import Path
@@ -41,9 +40,6 @@ from .models import (
     Point,
 )
 from .lib.aquacrop import AquaCrop as FortranBMI
-from pydantic import ValidationError
-
-
 
 if TYPE_CHECKING:
     from aquacrop_bmi.models import Season
@@ -150,223 +146,49 @@ class BmiAquaCrop(Bmi):
         except FileNotFoundError:
             self._original_cwd = Path("/tmp")
     def initialize(self, config_file: str) -> None:
-        """Initialize from JSON config file with user-friendly error handling"""
+        """
+        Initialize from JSON scenario file
         
-        try:
-            # Load config
-            config_path = Path(config_file).resolve()
-            
-            if not config_path.exists():
-                print(self._format_file_not_found_error(str(config_path)))
-                raise FileNotFoundError(f"Config file not found: {config_path}")
-            
-            try:
-                with open(config_path) as f:
-                    config = json.load(f)
-            except json.JSONDecodeError as e:
-                print(self._format_json_error(str(config_path), e))
-                raise
-            
-            self._config_file = config_path
-            self._scenario_type = self._detect_scenario_type(config)
-            
-            print(f"Detected scenario type: {self._scenario_type}")
-            
-            # Calibration scenarios
-            if self._scenario_type == 'crop-calibration':
-                print("Performing crop parameter calibration...")
-                try:
-                    self._calibration_results = self._run_crop_calibration(config)
-                except ValidationError as e:
-                    print(self._format_validation_error(e, str(config_path)))
-                    raise
-                
-                output_dir = self._save_calibration_results()
-                self._data_root = output_dir
-                self._calibration_only = True
-                print(f"\n✓ Calibration complete. Results saved.")
-                print(f"  To run simulation, use the generated scenarios file in outputs/")
-                return
-            
-            elif self._scenario_type == 'fertility-stress-calibration':
-                print("Performing fertility stress calibration...")
-                try:
-                    self._calibration_results = self._run_fertility_stress_calibration(config)
-                except ValidationError as e:
-                    print(self._format_validation_error(e, str(config_path)))
-                    raise
-                
-                output_dir = self._save_calibration_results()
-                self._data_root = output_dir
-                self._calibration_only = True
-                print(f"\n✓ Calibration complete. Results saved.")
-                print(f"  To run simulation, use the generated scenarios file in outputs/")
-                return
-            
-            # Simulation scenarios
-            try:
-                if self._scenario_type == 'simulation-data':
-                    self._scenario_data = ScenariosSimulationInput(**config)
-                else:  # scenarios-simulation
-                    self._scenario_data = self._load_scenario_simulation(config)
-            except ValidationError as e:
-                print(self._format_validation_error(e, str(config_path)))
-                raise
-            
-            self._initialize_season()
-            
-        except httpx.ReadTimeout:
-            print(self._format_network_error())
-            raise
-        except Exception as e:
-            # Let other exceptions through but add context
-            print(f"\nInitialization error: {type(e).__name__}")
-            print(str(e))
-            raise
-
-
-    # Add these helper methods to BmiAquaCrop class:
-
-    def _format_file_not_found_error(self, config_file: str) -> str:
-        return f"""
-    {'='*80}
-    Configuration file not found
-    {'='*80}
-
-    File: {config_file}
-
-    The specified file does not exist.
-
-    Troubleshooting:
-    1. Check that the path is correct.
-    2. Ensure the file has a .json extension.
-    3. Verify the current working directory.
-
-    Example scenario files:
-    - scenarios/AquacropSimulationData.json
-    - scenarios/crop-calibration.json
-    - scenarios/fertility-stress-calibration.json
-
-    {'='*80}
-    """
-    
-    def _format_json_error(self, config_file: str, error: json.JSONDecodeError) -> str:
-        return f"""
-    {'='*80}
-    Invalid JSON syntax
-    {'='*80}
-
-    File: {config_file}
-    Line: {error.lineno}, Column: {error.colno}
-    Message: {error.msg}
-
-    Common causes:
-    1. Missing or extra commas.
-    2. Single quotes instead of double quotes.
-    3. Unmatched brackets {{ }} or [ ].
-    4. Trailing comma after the last item.
-
-    Suggestion:
-    Validate your file using an online JSON validator (e.g., jsonlint.com).
-
-    {'='*80}
-    """
-
-
-
-    def _format_validation_error(self, error: ValidationError, config_file: str) -> str:
-        errors = error.errors()
-
-        missing = ['.'.join(str(x) for x in e['loc']) for e in errors if e['type'] == 'missing']
-        type_errs = [('.'.join(str(x) for x in e['loc']), e['msg'])
-                    for e in errors if 'type' in e['type']]
-
-        lines = [
-            "\n" + "="*80,
-            "Invalid scenario structure",
-            "="*80,
-            f"\nFile: {config_file}\n"
-        ]
-
-        if missing:
-            lines.append("Missing required fields:")
-            for field in missing:
-                lines.append(f"  - {field}")
-                if 'simulation_start' in field or 'simulation_end' in field:
-                    lines.append("    Expected format: YYYY-MM-DD")
-                elif 'const.wc' in field:
-                    lines.append("    Expected water content value (0–1)")
-                elif 'const.ec' in field:
-                    lines.append("    Expected electrical conductivity (dS/m)")
-                elif 'const.ksat' in field:
-                    lines.append("    Expected hydraulic conductivity (mm/day)")
-
-        if type_errs:
-            lines.append("\nType errors:")
-            for loc, msg in type_errs:
-                lines.append(f"  - {loc}: {msg}")
-
-        if any('season' in f for f in missing):
-            lines.extend([
-                "\nExpected season structure:",
-                "\"seasons\": [{",
-                "  \"planting_date\": \"2020-05-01\",",
-                "  \"simulation_start\": \"2020-04-15\",",
-                "  \"simulation_end\": \"2020-09-20\",",
-                "  \"growing_season_start\": \"2020-05-01\",",
-                "  \"growing_season_end\": \"2020-09-15\",",
-                "  \"harvest_date\": \"2020-09-15\",",
-                "  \"yield_\": 8.5",
-                "}]"
-            ])
-
-        if any('soil' in f for f in missing):
-            lines.extend([
-                "\nExpected soil structure:",
-                "\"soils\": [[{",
-                "  \"thickness\": 200.0,",
-                "  \"sat\": 0.50,",
-                "  \"fc\": 0.31,",
-                "  \"wp\": 0.15,",
-                "  \"Ksat\": 1200.0,",
-                "  \"const\": {",
-                "    \"wc\": 0.31,",
-                "    \"ec\": 0.5,",
-                "    \"ksat\": 1200.0",
-                "  }",
-                "}]]"
-            ])
-
-        lines.extend([
-            "\nReference:",
-            "  See example files in the scenarios/ directory.",
-            "\n" + "="*80 + "\n"
-        ])
-
-        return '\n'.join(lines)
-
-
-    def _format_network_error(self) -> str:
-        return f"""
-    {'='*80}
-    Network timeout while requesting elevation data
-    {'='*80}
-
-    The elevation API did not respond.
-
-    Workaround:
-    Add an altitude value directly in your scenario file, for example:
-
-    {
-    "point": {
-        "latitude": 35.0,
-        "longitude": -120.0,
-        "altitude": 100.0
-    }
-    }
-
-    {'='*80}
-    """
+        Performs calibration if needed (crop-calibration, fertility-stress-calibration),
+        then initializes first season OR soil combination
+        """
+        config_path = Path(config_file).resolve()
+        
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+        
+        with open(config_path) as f:
+            config = json.load(f)
+        
+        self._scenario_type = self._detect_scenario_type(config)
+        print(f"Detected scenario type: {self._scenario_type}")
+        
+        if self._scenario_type == 'crop-calibration':
+            print("Performing crop parameter calibration...")
+            self._calibration_results = self._run_crop_calibration(config)
+            output_dir = self._save_calibration_results()
+            self._data_root = output_dir  # Set so bmi.py doesn't crash
+            self._calibration_only = True  # Signal early return
+            print(f"\n✓ Calibration complete. Results saved.")
+            print(f"  To run simulation, use the generated scenarios file in outputs/")
+            return  # Stop here, don't initialize simulation
+        
+        elif self._scenario_type == 'fertility-stress-calibration':
+            print("Performing fertility stress calibration...")
+            self._calibration_results = self._run_fertility_stress_calibration(config)
+            output_dir = self._save_calibration_results()
+            self._data_root = output_dir  # Set so bmi.py doesn't crash
+            self._calibration_only = True  # Signal early return
+            print(f"\n✓ Calibration complete. Results saved.")
+            print(f"  To run simulation, use the generated scenarios file in outputs/")
+            return  # Stop here, don't initialize simulation
+        
+        else: 
+            self._scenario_data = self._load_scenario_simulation(config)
+        
+        self._current_season_idx = 0
+        self._current_soil_idx = 0
+        self._initialize_season()
     
     def _initialize_season(self) -> None:
         """Initialize current season/soil combination"""
@@ -394,7 +216,7 @@ class BmiAquaCrop(Bmi):
         with suppress_fortran_output():
             self._fortran_bmi.initialize(project_file)
         print(f"Season initialized")
-
+    
     def update(self) -> None:
         """Advance model by one time step"""
         self._fortran_bmi.update()
@@ -551,7 +373,7 @@ class BmiAquaCrop(Bmi):
                 base_output = Path("/tmp/outputs")
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = base_output / f"{self._scenario_type}_{timestamp}"
+        output_dir = base_output / f"calibration_{timestamp}"
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # Save calibrated crop file
@@ -727,12 +549,11 @@ class BmiAquaCrop(Bmi):
         
         print(f"Running {season_count * sample_count} simulations...")
         
-        # Sequential execution with batched cleanup
+        # Sequential execution (no parallel POOL)
         errors = np.zeros((season_count, sample_count))
         
         sim_count = 0
         total = season_count * sample_count
-        CLEANUP_BATCH = 10  # Force cleanup every N simulations
         
         for season_idx, season in enumerate(data.seasons):
             print(f"Season {season_idx + 1}/{season_count}")
@@ -748,11 +569,6 @@ class BmiAquaCrop(Bmi):
                 )
                 
                 errors[season_idx, sample_idx] = error
-                
-                # Force garbage collection periodically
-                if sim_count % CLEANUP_BATCH == 0:
-                    import gc
-                    gc.collect()
                 
                 if sim_count % 50 == 0 or sim_count == total:
                     print(f"  Progress: {sim_count}/{total} simulations")
@@ -821,42 +637,34 @@ class BmiAquaCrop(Bmi):
                 from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop
                 model = BmiAquaCrop()
                 
-                try:
-                    # Suppress output during calibration
-                    with open(os.devnull, 'w') as devnull:
-                        with redirect_stdout(devnull), redirect_stderr(devnull):
-                            model.initialize(temp_file)
-                    
-                    # Run full season
-                    start_time = model.get_start_time()
-                    end_time = model.get_end_time()
-                    n_steps = int(end_time - start_time)
-                    
-                    dest = np.empty(1, dtype=np.float64)
-                    
-                    for step in range(n_steps + 1):
-                        current_time = model.get_current_time()
-                        
-                        if current_time < end_time:
-                            model.update()
-                    
-                    # Get final yield
-                    model.get_value("crop__yield", dest)
-                    yield_simulated = float(dest[0])
-                    
-                    # Calculate error
-                    yield_observed = season.yield_
-                    error = abs(yield_observed - yield_simulated)
-                    return error
+                # Suppress output during calibration
+                with open(os.devnull, 'w') as devnull:
+                    with redirect_stdout(devnull), redirect_stderr(devnull):
+                        model.initialize(temp_file)
                 
-                finally:
-                    # CRITICAL: Always finalize and delete
-                    try:
-                        model.finalize()
-                    except Exception as e:
-                        pass  # Ignore finalize errors
-                    finally:
-                        del model  # Explicit cleanup
+                # Run full season
+                start_time = model.get_start_time()
+                end_time = model.get_end_time()
+                n_steps = int(end_time - start_time)
+                
+                dest = np.empty(1, dtype=np.float64)
+                
+                for step in range(n_steps + 1):
+                    current_time = model.get_current_time()
+                    
+                    if current_time < end_time:
+                        model.update()
+                
+                # Get final yield
+                model.get_value("crop__yield", dest)
+                yield_simulated = float(dest[0])
+                
+                model.finalize()
+                
+                # Calculate error
+                yield_observed = season.yield_
+                error = abs(yield_observed - yield_simulated)
+                return error
             
             finally:
                 # Clean up temp file
@@ -896,10 +704,7 @@ class BmiAquaCrop(Bmi):
         output_dir = (original_cwd / "outputs").resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Use scenario_type in folder name
-        scenario_name = getattr(self, '_scenario_type', 'simulation')
-        data_path = output_dir / f"{scenario_name}_{timestamp}"
+        data_path = output_dir / f"bmi_data_{timestamp}"
         
         with AquacropProject(with_default=True) as project:
             project.write_climate_files(season.simulation_start, weather_data)

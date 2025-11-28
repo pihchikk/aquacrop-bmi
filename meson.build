@@ -2,7 +2,7 @@ project(
     'aquacrop_bmi_babel',
     'fortran',
     'cython',
-    version: '0.2',
+    version: '0.2.1',
 )
 
 py = import('python').find_installation(pure: false)

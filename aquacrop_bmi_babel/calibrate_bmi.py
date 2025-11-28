@@ -36,7 +36,6 @@ def safe_getcwd():
     except FileNotFoundError:
         return Path("/mnt/d")
 
-# Calibration parameters
 CALIBRATED_PARAMETERS = (
     'Soil water depletion factor for canopy expansion (p-exp) - Upper threshold',
     'Soil water depletion factor for canopy expansion (p-exp) - Lower threshold',
@@ -153,7 +152,6 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
     print(f"{scenario_type.upper()}")
     print(f"{'='*60}\n")
     
-    # Load and prepare data
     if scenario_type == 'crop-calibration':
         input_data = CropCalibrationInput(**config)
         
@@ -178,7 +176,7 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
         stress_samples = np.zeros(len(samples))
         calibrated_params = CALIBRATED_PARAMETERS
         
-    else:  # fertility-stress-calibration
+    else:  
         input_data = FertilityStressCalibrationInput(**config)
         crop_name, crop_index, crop_params = loads_crop_file(input_data.crop_file)
         
@@ -207,7 +205,6 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
     print(f"Samples: {len(samples)}")
     print(f"Total simulations: {len(input_data.seasons) * len(samples)}\n")
     
-    # Run calibration
     errors = np.zeros((len(input_data.seasons), len(samples)))
     
     sim_count = 0
@@ -219,17 +216,14 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
         for sample_idx, (sample, stress) in enumerate(zip(samples, stress_samples)):
             sim_count += 1
             
-            # Update params with sample
             test_params = crop_params.copy()
             for param_name, param_value in zip(calibrated_params, sample):
                 test_params[param_name] = param_value
             
-            # Generate crop file for this sample
             with StringIO() as buffer:
                 dump_crop_file(buffer, crop_index, test_params, crop_name)
                 test_crop_file = buffer.getvalue()
             
-            # Create scenario for this simulation
             scenario_data = ScenariosSimulationInput(
                 gwt_depth=input_data.gwt_depth,
                 gwt_ec=input_data.gwt_ec,
@@ -240,7 +234,6 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
                 fertility_stress=int(stress),
             )
             
-            # Run simulation
             final_yield = run_bmi_simulation_for_calibration(
                 scenario_data,
                 season,
@@ -255,27 +248,21 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
                       f"sim_count={sim_count}/{total_sims}, "
                       f"yield_sim={final_yield:.2f}, error={error:.4f}")
     
-    # Find best sample
     mean_errors = errors.mean(axis=0)
     best_idx = mean_errors.argmin()
     best_error = mean_errors[best_idx]
     
-    print(f"\n{'='*60}")
     print(f"CALIBRATION RESULTS")
-    print(f"{'='*60}")
     print(f"Best sample index: {best_idx}")
     print(f"Mean error: {best_error:.4f}")
     
-    # Update crop params with best values
     for param_name, param_value in zip(calibrated_params, samples[best_idx]):
         crop_params[param_name] = param_value
     
-    # Generate final crop file
     with StringIO() as buffer:
         dump_crop_file(buffer, crop_index, crop_params, crop_name)
         final_crop_file = buffer.getvalue()
     
-    # Save results to timestamped outputs/ folder
     if output_dir is None:
         try:
             base_output = safe_getcwd() / "outputs"
@@ -291,12 +278,11 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
     output_file = output_dir / "crop_calibrated_bmi.txt"
     with open(output_file, 'w') as f:
         f.write(final_crop_file)
-    print(f"\n✓ Saved calibrated crop file to: {output_file}")
+    print(f"\nSaved calibrated crop file to: {output_file}")
     
-    # Create scenarios file for BMI use
     if scenario_type == 'fertility-stress-calibration':
         fertility_stress = int(stress_samples[best_idx])
-        print(f"✓ Best fertility stress: {fertility_stress}%")
+        print(f"Best fertility stress: {fertility_stress}%")
     else:
         fertility_stress = 10
     
@@ -311,7 +297,7 @@ def calibrate_through_bmi(scenario_file: Path, output_dir: str = None):
             'soils': [s.model_dump() if hasattr(s, 'model_dump') else s for s in input_data.soil] if isinstance(input_data.soil, list) else input_data.soil,
             'fertility_stress': fertility_stress,
         }, f, indent=2, default=str)
-    print(f"✓ Saved scenarios file to: {scenarios_file}")
+    print(f"Saved scenarios file to: {scenarios_file}")
     
     return 0
 

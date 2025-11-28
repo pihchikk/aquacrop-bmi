@@ -4,13 +4,14 @@ requires = ["cython", "numpy", "meson-python", "meson", "ninja", "wheel"]
 
 [project]
 name = "aquacrop_bmi_babel"
+readme = "README.rst"
 authors = [
   {name = "pihchikk", email = "alperf97@gmail.com"},
 ]
 maintainers = [
   {name = "pihchikk", email = "alperf97@gmail.com"},
 ]
-description = "PyMT plugin for aquacrop_bmi_babel"
+description = "BMI wrapper for AquaCrop with full Basic Model Interface compliance and WSL support"
 license = {text = "MIT License"}
 classifiers=[
     "Development Status :: 4 - Beta",
@@ -22,9 +23,11 @@ classifiers=[
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Hydrology",
 ]
 requires-python = ">=3.10"
-keywords=["bmi", "pymt"]
+keywords=["bmi", "pymt", "aquacrop", "crop modeling", "water productivity", "irrigation"]
 dynamic = ["version"]
 dependencies = [
   "numpy",
@@ -42,6 +45,9 @@ dependencies = [
 
 [project.urls]
 homepage = "https://github.com/pihchikk/aquacrop_bmi_babel"
+repository = "https://github.com/pihchikk/aquacrop_bmi_babel"
+documentation = "https://github.com/pihchikk/aquacrop_bmi_babel"
+changelog = "https://github.com/pihchikk/aquacrop_bmi_babel/blob/main/CHANGES.rst"
 
 [project.entry-points."pymt.plugins"]
 AquaCrop = "aquacrop_bmi_babel.bmi:AquaCrop"
@@ -56,6 +62,8 @@ dev = [
   "meson-python",
   "ninja",
   "nox",
+  "build",
+  "twine",
 ]
 docs = [
   "sphinx>=4",
@@ -63,23 +71,23 @@ docs = [
   "sphinx-inline-tabs",
   "sphinxcontrib.towncrier",
   "pygments>=2.4",
-  "sphinx-inline-tabs",
   "furo",
 ]
 testing = [
+  "pytest>=6.0",
+  "pytest-cov",
   "bmi-tester>=0.5.4",
 ]
 
 [tool.pytest.ini_options]
-minversion = "5.0"
-testpaths = ["aquacrop_bmi_babel", "tests"]
-norecursedirs = [".*", "*.egg*", "build", "dist"]
+minversion = "6.0"
+testpaths = ["tests"]
+norecursedirs = [".*", "*.egg*", "build", "dist", "aquacrop_bmi_babel"]
 addopts = """
     --ignore setup.py
     --tb native
-    --strict
+    --strict-markers
     --durations 16
-    --doctest-modules
     -vvv
 """
 doctest_optionflags = [

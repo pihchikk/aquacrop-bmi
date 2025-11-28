@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 A simple scenario runner for Aquacrop-BMI
 Runs simulation scenarios only (not calibration)
@@ -13,7 +12,6 @@ from .bmi_aquacrop import BmiAquaCrop
 
 
 def detect_scenario_type(config: dict) -> str:
-    """Detect scenario type from JSON structure"""
     if 'crop_ref' in config and 'crop_params' in config:
         return 'crop-calibration'
     elif 'crop_file' in config and 'fertility_stress_range' in config:

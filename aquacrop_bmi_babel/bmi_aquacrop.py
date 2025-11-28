@@ -50,7 +50,6 @@ if TYPE_CHECKING:
 
 
 def safe_getcwd():
-    """Get current working directory with fallback for broken cwd"""
     try:
         return Path(os.getcwd())
     except FileNotFoundError:
@@ -58,7 +57,6 @@ def safe_getcwd():
 
 
 def suppress_fortran_output():
-    """suppress Fortran stdout/stderr"""
     class FortranSuppressor:
         def __enter__(self):
             self.old_stdout = os.dup(1)
@@ -143,17 +141,15 @@ class BmiAquaCrop(Bmi):
         self._data_root: Path | None = None
         self._scenario_type = None
         self._calibration_results = {}
-        self._calibration_only = False  # Flag: True if calibration returned early
+        self._calibration_only = False  
         
         try:
             self._original_cwd = original_cwd or safe_getcwd()
         except FileNotFoundError:
             self._original_cwd = Path("/tmp")
     def initialize(self, config_file: str) -> None:
-        """Initialize from JSON config file with user-friendly error handling"""
         
         try:
-            # Load config
             config_path = Path(config_file).resolve()
             
             if not config_path.exists():
@@ -172,7 +168,6 @@ class BmiAquaCrop(Bmi):
             
             print(f"Detected scenario type: {self._scenario_type}")
             
-            # Calibration scenarios
             if self._scenario_type == 'crop-calibration':
                 print("Performing crop parameter calibration...")
                 try:
@@ -203,11 +198,10 @@ class BmiAquaCrop(Bmi):
                 print(f"  To run simulation, use the generated scenarios file in outputs/")
                 return
             
-            # Simulation scenarios
             try:
                 if self._scenario_type == 'simulation-data':
                     self._scenario_data = ScenariosSimulationInput(**config)
-                else:  # scenarios-simulation
+                else:  
                     self._scenario_data = self._load_scenario_simulation(config)
             except ValidationError as e:
                 print(self._format_validation_error(e, str(config_path)))
@@ -219,19 +213,14 @@ class BmiAquaCrop(Bmi):
             print(self._format_network_error())
             raise
         except Exception as e:
-            # Let other exceptions through but add context
             print(f"\nInitialization error: {type(e).__name__}")
             print(str(e))
             raise
 
 
-    # Add these helper methods to BmiAquaCrop class:
-
     def _format_file_not_found_error(self, config_file: str) -> str:
         return f"""
-    {'='*80}
     Configuration file not found
-    {'='*80}
 
     File: {config_file}
 
@@ -247,14 +236,11 @@ class BmiAquaCrop(Bmi):
     - scenarios/crop-calibration.json
     - scenarios/fertility-stress-calibration.json
 
-    {'='*80}
     """
     
     def _format_json_error(self, config_file: str, error: json.JSONDecodeError) -> str:
         return f"""
-    {'='*80}
     Invalid JSON syntax
-    {'='*80}
 
     File: {config_file}
     Line: {error.lineno}, Column: {error.colno}
@@ -269,7 +255,6 @@ class BmiAquaCrop(Bmi):
     Suggestion:
     Validate your file using an online JSON validator (e.g., jsonlint.com).
 
-    {'='*80}
     """
 
 
@@ -282,9 +267,7 @@ class BmiAquaCrop(Bmi):
                     for e in errors if 'type' in e['type']]
 
         lines = [
-            "\n" + "="*80,
             "Invalid scenario structure",
-            "="*80,
             f"\nFile: {config_file}\n"
         ]
 
@@ -340,7 +323,6 @@ class BmiAquaCrop(Bmi):
         lines.extend([
             "\nReference:",
             "  See example files in the scenarios/ directory.",
-            "\n" + "="*80 + "\n"
         ])
 
         return '\n'.join(lines)
@@ -348,9 +330,7 @@ class BmiAquaCrop(Bmi):
 
     def _format_network_error(self) -> str:
         return f"""
-    {'='*80}
     Network timeout while requesting elevation data
-    {'='*80}
 
     The elevation API did not respond.
 
@@ -365,11 +345,9 @@ class BmiAquaCrop(Bmi):
     }
     }
 
-    {'='*80}
     """
     
     def _initialize_season(self) -> None:
-        """Initialize current season/soil combination"""
         season = self._scenario_data.seasons[self._current_season_idx]
         soil = self._scenario_data.soils[self._current_soil_idx]
         
@@ -396,22 +374,18 @@ class BmiAquaCrop(Bmi):
         print(f"Season initialized")
 
     def update(self) -> None:
-        """Advance model by one time step"""
         self._fortran_bmi.update()
     
     def update_until(self, then: float) -> None:
-        """Advance model until specified time"""
         self._fortran_bmi.update_until(then)
     
     def finalize(self) -> None:
-        """Finalize model"""
         self._fortran_bmi.finalize()
         if self._data_root and self._data_root.exists():
             shutil.rmtree(self._data_root)
             self._data_root = None
     
     def reinitialize_next_season(self) -> bool:
-        """Move to next season/soil combination"""
         if not self._scenario_data:
             return False
         
@@ -498,7 +472,6 @@ class BmiAquaCrop(Bmi):
     def _convert_crop_calibration_to_simulation(
         self, config: dict, crop_file: str
     ) -> ScenariosSimulationInput:
-        """Convert crop-calibration to simulation format"""
         input_data = CropCalibrationInput(**config)
         return ScenariosSimulationInput(
             gwt_depth=input_data.gwt_depth,
@@ -513,7 +486,6 @@ class BmiAquaCrop(Bmi):
     def _convert_fertility_calibration_to_simulation(
         self, config: dict, crop_file: str, stress_per_season: list[int]
     ) -> ScenariosSimulationInput:
-        """Convert fertility calibration to simulation format"""
         input_data = FertilityStressCalibrationInput(**config)
         return ScenariosSimulationInput(
             gwt_depth=input_data.gwt_depth,
@@ -526,11 +498,9 @@ class BmiAquaCrop(Bmi):
         )
     
     def _load_scenario_simulation(self, config: dict) -> ScenariosSimulationInput:
-        """Load scenarios-simulation directly"""
         return ScenariosSimulationInput(**config)
     
     def _save_calibration_results(self) -> Path:
-        """Save calibration results to timestamped outputs directory. Returns output directory path."""
         from datetime import datetime
         from pathlib import Path
         import json
@@ -539,7 +509,6 @@ class BmiAquaCrop(Bmi):
             print("Warning: No calibration results to save")
             return Path("/tmp/outputs")
         
-        # Determine base output directory (prefer original_cwd)
         if hasattr(self, '_original_cwd') and self._original_cwd:
             base_output = self._original_cwd / "outputs"
         elif hasattr(self, '_output_base'):
@@ -554,13 +523,11 @@ class BmiAquaCrop(Bmi):
         output_dir = base_output / f"{self._scenario_type}_{timestamp}"
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save calibrated crop file
         crop_file_path = output_dir / "crop_calibrated_bmi.txt"
         with open(crop_file_path, 'w') as f:
             f.write(self._calibration_results['crop_file'])
         print(f"  Saved: {crop_file_path}")
         
-        # Save scenarios file for future simulation
         scenarios_file_path = output_dir / "scenarios_from_bmi_calib.json"
         
         scenario_data = {
@@ -577,7 +544,6 @@ class BmiAquaCrop(Bmi):
             json.dump(scenario_data, f, indent=2, default=str)
         print(f"  Saved: {scenarios_file_path}")
         
-        # Save calibration metadata
         metadata_path = output_dir / "calibration_metadata.json"
         metadata = {
             'scenario_type': self._scenario_type,
@@ -587,7 +553,6 @@ class BmiAquaCrop(Bmi):
         }
         
         if 'fertility_stress_per_season' in self._calibration_results:
-            # Convert numpy types to Python types
             metadata['fertility_stress'] = [int(x) for x in self._calibration_results['fertility_stress_per_season']]
         
         with open(metadata_path, 'w') as f:
@@ -597,7 +562,6 @@ class BmiAquaCrop(Bmi):
         return output_dir
         
     def _run_crop_calibration(self, config: dict) -> dict:
-        """Calibrate crop parameters to match observed yields"""
         input_data = CropCalibrationInput(**config)
         crop_name, crop_index, crop_params = get_crop_params(input_data.crop_ref)
         crop_params.update(input_data.crop_params.model_dump(by_alias=True, exclude_none=True))
@@ -617,7 +581,6 @@ class BmiAquaCrop(Bmi):
             'best_num': best_num,
             'crop_file': crop_file,
             'fertility_stress_per_season': [10] * len(input_data.seasons),
-            # Store metadata for scenarios file
             'gwt_depth': input_data.gwt_depth,
             'gwt_ec': input_data.gwt_ec,
             'point': input_data.point.model_dump() if hasattr(input_data.point, 'model_dump') else input_data.point,
@@ -628,7 +591,6 @@ class BmiAquaCrop(Bmi):
     def _sample_crop_params(
         self, crop_params: dict, data: CropCalibrationInput
     ) -> NDArray:
-        """Generate parameter samples using Sobol sequence"""
         bounds = [
             self._param_bounds(name, crop_params[name], data.sampling_range)
             for name in CALIBRATED_PARAMETERS
@@ -674,7 +636,6 @@ class BmiAquaCrop(Bmi):
             'best_num': best_num,
             'crop_file': crop_file,
             'fertility_stress_per_season': stress_values,
-            # Store metadata for scenarios file
             'gwt_depth': input_data.gwt_depth,
             'gwt_ec': input_data.gwt_ec,
             'point': input_data.point.model_dump() if hasattr(input_data.point, 'model_dump') else input_data.point,
@@ -685,7 +646,6 @@ class BmiAquaCrop(Bmi):
     def _sample_crop_params_with_stress(
         self, crop_params: dict, data: FertilityStressCalibrationInput
     ) -> tuple[NDArray, NDArray]:
-        """Generate samples for crop params and stress"""
         bounds = [
             self._param_bounds(name, crop_params[name], data.sampling_range)
             for name in CALIBRATED_PARAMETERS_WITH_STRESS
@@ -715,7 +675,6 @@ class BmiAquaCrop(Bmi):
         if stress_samples is None:
             stress_samples = np.zeros(len(samples))
         
-        # Store context for workers (NO AquacropProject needed)
         self._crop_name = crop_name
         self._current_gwt_depth = data.gwt_depth
         self._current_gwt_ec = data.gwt_ec
@@ -727,7 +686,6 @@ class BmiAquaCrop(Bmi):
         
         print(f"Running {season_count * sample_count} simulations...")
         
-        # Sequential execution with batched cleanup
         errors = np.zeros((season_count, sample_count))
         
         sim_count = 0
@@ -741,7 +699,7 @@ class BmiAquaCrop(Bmi):
                 sim_count += 1
                 
                 error = self._calibration_worker(
-                    None,  # parent not used
+                    None,  
                     calibrated_params,
                     crop_index,
                     (crop_params.copy(), season, sample, stress)
@@ -749,7 +707,6 @@ class BmiAquaCrop(Bmi):
                 
                 errors[season_idx, sample_idx] = error
                 
-                # Force garbage collection periodically
                 if sim_count % CLEANUP_BATCH == 0:
                     import gc
                     gc.collect()
@@ -769,16 +726,10 @@ class BmiAquaCrop(Bmi):
         
         return best_num, best_error, crop_file
 
-
-    # ============================================================================
-    # REPLACE _calibration_worker method (lines 501-548)
-    # ============================================================================
-
     def _calibration_worker(
         self, parent: Path, calibrated_params: tuple, crop_index: tuple,
         args: tuple
     ) -> float:
-        """Worker: run one simulation via BmiAquaCrop and return error"""
         import tempfile
         import json
         import os
@@ -789,17 +740,13 @@ class BmiAquaCrop(Bmi):
         crop_params, season, sample, stress = args
         
         try:
-            # Update crop params with sample values
             for key, val in zip(calibrated_params, sample, strict=True):
                 crop_params[key] = val
             
-            # Generate crop file with updated params
             with StringIO() as buffer:
                 dump_crop_file(buffer, crop_index, crop_params, self._crop_name)
                 test_crop_file = buffer.getvalue()
             
-            # Create temp JSON scenario (simulation-data format)
-            # Create temp JSON scenario (simulation-data format)
             temp_dict = {
                 'gwt_depth': self._current_gwt_depth,
                 'gwt_ec': self._current_gwt_ec,
@@ -807,27 +754,23 @@ class BmiAquaCrop(Bmi):
                 'seasons': [season.model_dump() if hasattr(season, 'model_dump') else season],
                 'crop_file': test_crop_file,
                 'soils': [[layer.model_dump() if hasattr(layer, 'model_dump') else layer 
-                        for layer in self._current_soil]],  # ← ФИКС ЗДЕСЬ
+                        for layer in self._current_soil]],  
                 'fertility_stress': int(stress),
             }
                 
-            # Write temp JSON file
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
                 json.dump(temp_dict, f, default=str)
                 temp_file = f.name
             
             try:
-                # Use BmiAquaCrop wrapper (creates files properly)
                 from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop
                 model = BmiAquaCrop()
                 
                 try:
-                    # Suppress output during calibration
                     with open(os.devnull, 'w') as devnull:
                         with redirect_stdout(devnull), redirect_stderr(devnull):
                             model.initialize(temp_file)
                     
-                    # Run full season
                     start_time = model.get_start_time()
                     end_time = model.get_end_time()
                     n_steps = int(end_time - start_time)
@@ -840,26 +783,22 @@ class BmiAquaCrop(Bmi):
                         if current_time < end_time:
                             model.update()
                     
-                    # Get final yield
                     model.get_value("crop__yield", dest)
                     yield_simulated = float(dest[0])
                     
-                    # Calculate error
                     yield_observed = season.yield_
                     error = abs(yield_observed - yield_simulated)
                     return error
                 
                 finally:
-                    # CRITICAL: Always finalize and delete
                     try:
                         model.finalize()
                     except Exception as e:
-                        pass  # Ignore finalize errors
+                        pass  
                     finally:
                         del model  # Explicit cleanup
             
             finally:
-                # Clean up temp file
                 try:
                     os.unlink(temp_file)
                 except:
@@ -884,7 +823,6 @@ class BmiAquaCrop(Bmi):
         
         soil_params = get_soil_params(soil)
         
-        # Use original_cwd if available, otherwise try cwd
         if hasattr(self, '_original_cwd') and self._original_cwd:
             original_cwd = self._original_cwd
         else:
@@ -897,7 +835,6 @@ class BmiAquaCrop(Bmi):
         output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Use scenario_type in folder name
         scenario_name = getattr(self, '_scenario_type', 'simulation')
         data_path = output_dir / f"{scenario_name}_{timestamp}"
         
@@ -920,7 +857,6 @@ class BmiAquaCrop(Bmi):
         return data_path
     
     def _normalize_point(self, point: Point | Point3D) -> Point3D:
-        """Normalize point to Point3D with altitude"""
         if isinstance(point, Point3D):
             return point
         

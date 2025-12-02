@@ -2,172 +2,93 @@
 aquacrop_bmi_babel
 ==================
 
-.. image:: https://img.shields.io/badge/CSDMS-Basic%20Model%20Interface-green.svg
-        :target: https://bmi.readthedocs.io/
-        :alt: Basic Model Interface
+BMI wrapper for AquaCrop - FAO's crop water productivity model with full Basic Model Interface compliance and Windows Subsystem for Linux (WSL) support.
 
-.. image:: https://img.shields.io/badge/recipe-aquacrop_bmi_babel-green.svg
-        :target: https://anaconda.org/conda-forge/aquacrop_bmi_babel
+Features
+========
 
-.. image:: https://readthedocs.org/projects/aquacrop-bmi-babel/badge/?version=latest
-        :target: https://aquacrop-bmi-babel.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+* Full BMI 2.0 standard implementation
+* Windows WSL support
+* JSON-based configuration
+* Initialize from JSON string or Python dict
+* Automated weather data retrieval (NASA POWER API)
+* Built-in calibration tools
+* 11 input variables, 17 output variables
 
-.. image:: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/test.yml/badge.svg
-        :target: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/test.yml
+Installation
+============
 
-.. image:: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/flake8.yml/badge.svg
-        :target: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/flake8.yml
+From PyPI::
 
-.. image:: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/black.yml/badge.svg
-        :target: https://github.com/pihchikk/aquacrop_bmi_babel/actions/workflows/black.yml
+    pip install aquacrop-bmi-babel
 
+From Source (Development)::
 
-.. start-intro
+    git clone https://github.com/pihchikk/aquacrop_bmi_babel.git
+    cd aquacrop_bmi_babel
+    pip install -e . --no-build-isolation
 
-This project provides a wrapped version (using the `babelizer <https://babelizer.readthedocs.io>`_ tool)
-of components within the following following libraries that expose a Basic Model Interface.
-This allows these components to be imported and used within
-Python and the Python Modeling Toolkit, PyMT.
-
-.. list-table::
-  :header-rows: 1
-  :width: 90%
-  :widths: auto
-
-  * - Library
-    - Component
-    - PyMT
-  * - aquacropbmi
-    - :class:`~aquacrop_bmi_babel.AquaCrop`
-    -
-      .. code-block:: pycon
-
-        >>> from pymt.models import AquaCrop
-
-.. end-intro
-
-
-* Free software: MIT License
-* Documentation: https://aquacrop-bmi-babel.readthedocs.io.
-
-
-Quickstart
-==========
-
-.. start-quickstart
-
-To get started you will need to install the *aquacrop_bmi_babel* package.
-Here are two ways to do so.
-
-Install from conda-forge
-------------------------
-
-If the *aquacrop_bmi_babel* package is distributed on *conda-forge*, install it into your current environment with *conda*.
-
-.. code:: bash
-
-  conda install -c conda-forge aquacrop_bmi_babel
-
-Install from source
+System Requirements
 -------------------
 
-You can build and install the *aquacrop_bmi_babel* package from source using *conda* and *pip*.
+Linux/WSL::
 
-First, from the source directory, install package dependencies into your current environment with *conda*.
-
-.. code:: bash
-
-  conda install -c conda-forge --file requirements.txt --file requirements-build.txt --file requirements-library.txt
-
-Then install the package itself with *pip*.
-
-.. code:: bash
-
-  pip install --no-build-isolation --editable .
-
-Note that for an editable install, the ``--no-build-isolation`` flag must be set.
-
-.. end-quickstart
+    sudo apt-get install gfortran
+    conda install -c conda-forge bmi-fortran
+    pip install aquacrop-bmi-babel
 
 Usage
 =====
 
-.. start-usage
+Basic Example::
 
-There are two ways to use the components provided by this package: directly through its Basic
-Model Interface (BMI), or as a PyMT plugin.
+    from aquacrop_bmi_babel import AquaCrop
+    import numpy as np
 
-A BMI is provided by each component in this package::class:`~aquacrop_bmi_babel.AquaCrop`
-.
+    model = AquaCrop()
+    model.initialize("scenario.json")
+    
+    while model.get_current_time() < model.get_end_time():
+        model.update()
+    
+    yield_data = np.empty(1, dtype=np.float64)
+    model.get_value("crop__yield", yield_data)
+    print(f"Yield: {yield_data[0]:.2f} t/ha")
+    
+    model.finalize()
 
+New in v0.2.1
+=============
 
-.. code-block:: pycon
+Initialize from JSON string::
 
-  >>> from aquacrop_bmi_babel import AquaCrop
-  >>> model = AquaCrop()
-  >>> model.get_component_name()  # Get the name of the component
-  >>> model.get_output_var_names()  # Get a list of the component's output variables
+    import json
+    from aquacrop_bmi_babel import AquaCrop
+    
+    config = {
+        "gwt_depth": 5.0,
+        "point": {"latitude": 39.9, "longitude": -105.2},
+        "seasons": [{"planting_date": "2020-05-01"}],
+        "crop_file": "MaizeGDD",
+        "soils": [[{"thickness": 200.0, "sat": 0.50}]]
+    }
+    
+    model = AquaCrop()
+    model.initialize_from_dict(config)
 
-The PyMT provides a more Pythonic and convenient way to use the component,
+WSL Support::
 
-.. code-block:: pycon
+    # Works with Windows paths in WSL
+    model.initialize("/mnt/d/projects/scenario.json")
 
-  >>> from pymt.models import AquaCrop
-  >>> model = AquaCrop()
-  >>> model.component_name
-  >>> model.output_var_names
+Links
+=====
 
+* GitHub: https://github.com/pihchikk/aquacrop_bmi_babel
+* Documentation: https://aquacrop-bmi-babel.readthedocs.io
+* PyPI: https://pypi.org/project/aquacrop-bmi-babel/
 
+License
+=======
 
-
-.. note::
-
-  If you will be using this project's components through the PyMT, you will first need to install
-  PyMT. This can be done using either *mamba* or *conda*.
-
-  .. tab:: mamba
-
-    .. code-block:: bash
-
-      mamba install pymt -c conda-forge
-
-  .. tab:: conda
-
-      .. code-block:: bash
-
-        conda install pymt -c conda-forge
-
-
-.. end-usage
-
-
-Updating
-========
-
-.. start-updating
-
-This project has been automatically generated using the `babelizer <https://babelizer.readthedocs.io>`_ tool.
-If you have made changes to the project's ``babel.toml`` file or the would like to rerender the project
-with a newer version of the *babelizer*, you can do this either directly with the *babelize* command
-or using *nox*.
-
-.. warning::
-
-  Many of the files in the project are auto-generated by the *babelizer* and so any changes that you've
-  made to them will likely be lost after running the following commands.
-
-.. tab:: nox
-
-  .. code:: bash
-
-    nox -s update
-
-.. tab:: babelizer
-
-  .. code:: bash
-
-    babelize update
-
-
-.. end-updating
+MIT License

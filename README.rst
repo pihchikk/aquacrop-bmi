@@ -18,15 +18,17 @@ Features
 Installation
 ============
 
-From PyPI::
-
-    pip install aquacrop-bmi-babel
-
 From Source (Development)::
 
     git clone https://github.com/pihchikk/aquacrop_bmi_babel.git
     cd aquacrop_bmi_babel
     pip install -e . --no-build-isolation
+
+From Source::
+
+    git clone https://github.com/pihchikk/aquacrop_bmi_babel.git
+    cd aquacrop_bmi_babel
+    pip install .
 
 System Requirements
 -------------------

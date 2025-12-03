@@ -1,0 +1,151 @@
+{
+  "gwt_depth": 10,
+  "gwt_ec": 0,
+  "point": {
+    "latitude": 55.547980,
+    "longitude": 37.234828
+  },
+  "seasons": [
+    {
+      "yield": 3.9,
+      "simulation_start": "2011-04-01",
+      "simulation_end": "2011-09-15",
+      "growing_season_start": "2011-04-28",
+      "growing_season_end": "2011-09-15"
+    },
+    {
+      "yield": 7.0,
+      "simulation_start": "2012-04-01",
+      "simulation_end": "2012-09-15",
+      "growing_season_start": "2012-04-26",
+      "growing_season_end": "2012-09-15"
+    },
+    {
+      "yield": 10.05,
+      "simulation_start": "2013-04-01",
+      "simulation_end": "2013-09-15",
+      "growing_season_start": "2013-05-05",
+      "growing_season_end": "2013-09-15"
+    },
+    {
+      "yield": 10.25,
+      "simulation_start": "2014-04-01",
+      "simulation_end": "2014-09-15",
+      "growing_season_start": "2014-04-19",
+      "growing_season_end": "2014-09-15"
+    },
+    {
+      "yield": 10.12,
+      "simulation_start": "2015-04-01",
+      "simulation_end": "2015-09-15",
+      "growing_season_start": "2015-05-06",
+      "growing_season_end": "2015-09-15"
+    },
+    {
+      "yield": 10.18,
+      "simulation_start": "2016-04-01",
+      "simulation_end": "2016-09-15",
+      "growing_season_start": "2016-04-27",
+      "growing_season_end": "2016-09-15"
+    },
+    {
+      "yield": 10.36,
+      "simulation_start": "2017-04-01",
+      "simulation_end": "2017-09-15",
+      "growing_season_start": "2017-04-30",
+      "growing_season_end": "2017-09-15"
+    },
+    {
+      "yield": 7.77,
+      "simulation_start": "2018-04-01",
+      "simulation_end": "2018-09-15",
+      "growing_season_start": "2018-05-09",
+      "growing_season_end": "2018-09-15"
+    },
+    {
+      "yield": 7.85,
+      "simulation_start": "2019-04-01",
+      "simulation_end": "2019-09-15",
+      "growing_season_start": "2019-05-05",
+      "growing_season_end": "2019-09-15"
+    },
+    {
+      "yield": 10.53,
+      "simulation_start": "2020-04-01",
+      "simulation_end": "2020-09-15",
+      "growing_season_start": "2020-04-28",
+      "growing_season_end": "2020-09-15"
+    }
+  ],
+  "sampling_range": 50.0,
+  "soil": [
+    {
+      "thickness": 0.23,
+      "sat": 48.0,
+      "fc": 45.0,
+      "wp": 14.0,
+      "ksat": 602.0,
+      "penetrability": 100,
+      "gravel": 0,
+      "wc": 45.0,
+      "ec": 0.0
+    },
+    {
+      "thickness": 0.1,
+      "sat": 46.0,
+      "fc": 43.0,
+      "wp": 15.0,
+      "ksat": 312.0,
+      "penetrability": 100,
+      "gravel": 0,
+      "wc": 43.0,
+      "ec": 0.0
+    },
+    {
+      "thickness": 0.11,
+      "sat": 45.0,
+      "fc": 42.0,
+      "wp": 16.0,
+      "ksat": 167.0,
+      "penetrability": 100,
+      "gravel": 0,
+      "wc": 42.0,
+      "ec": 0.0
+    },
+    {
+      "thickness": 0.39,
+      "sat": 41.0,
+      "fc": 34.0,
+      "wp": 12.0,
+      "ksat": 282.0,
+      "penetrability": 100,
+      "gravel": 0,
+      "wc": 34.0,
+      "ec": 0.0
+    },
+    {
+      "thickness": 0.97,
+      "sat": 39.0,
+      "fc": 23.0,
+      "wp": 7.0,
+      "ksat": 1186.0,
+      "penetrability": 100,
+      "gravel": 0,
+      "wc": 23.0,
+      "ec": 0.0
+    }
+  ],
+  "crop_ref": "Wheat",
+  "crop_params": {
+    "plants_number": 4500000,
+    "emergence_day": 12,
+    "maximum_rooting_depth_day": 80,
+    "start_senescence_day": 100,
+    "maturity_day": 112,
+    "flowering_day": 80,
+    "flowering_stage_days": 13,
+    "harvest_index": 30,
+    "minimum_effective_rooting_depth": 0.3,
+    "maximum_effective_rooting_depth": 1.5
+  }
+}

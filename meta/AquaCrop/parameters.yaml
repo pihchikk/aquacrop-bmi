@@ -1,0 +1,535 @@
+latitude:
+  description: Latitude of simulation point
+  value:
+    default: 51.167754
+    range:
+      min: -90.0
+      max: 90.0
+    type: float
+    units: degrees_north
+
+longitude:
+  description: Longitude of simulation point
+  value:
+    default: 40.757038
+    range:
+      min: -180.0
+      max: 180.0
+    type: float
+    units: degrees_east
+
+simulation_start:
+  description: Start date of simulation period (YYYY-MM-DD)
+  value:
+    default: "2016-04-01"
+    type: string
+
+simulation_end:
+  description: End date of simulation period (YYYY-MM-DD)
+  value:
+    default: "2016-09-15"
+    type: string
+
+growing_season_start:
+  description: Start date of growing season (YYYY-MM-DD)
+  value:
+    default: "2016-04-01"
+    type: string
+
+growing_season_end:
+  description: End date of growing season (YYYY-MM-DD)
+  value:
+    default: "2016-09-15"
+    type: string
+
+gwt_depth:
+  description: Groundwater table depth below surface
+  value:
+    default: 10.0
+    range:
+      min: 0.0
+      max: 1000.0
+    type: float
+    units: m
+
+gwt_ec:
+  description: Groundwater electrical conductivity
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 50.0
+    type: float
+    units: dS/m
+
+fertility_stress:
+  description: Soil fertility stress level (0-100%)
+  value:
+    default: 50
+    range:
+      min: 0
+      max: 100
+    type: int
+    units: percent
+
+crop_type:
+  description: Crop type selection
+  value:
+    default: "Wheat"
+    type: string
+
+soil_layers:
+  description: Number of soil layers
+  value:
+    default: 5
+    range:
+      min: 1
+      max: 12
+    type: int
+    units: "-"
+
+soil_thickness:
+  description: Thickness of each soil layer
+  value:
+    default: 0.2
+    range:
+      min: 0.01
+      max: 5.0
+    type: float
+    units: m
+
+soil_sat:
+  description: Soil water content at saturation (volumetric)
+  value:
+    default: 48.0
+    range:
+      min: 30.0
+      max: 70.0
+    type: float
+    units: percent
+
+soil_fc:
+  description: Soil water content at field capacity (volumetric)
+  value:
+    default: 45.0
+    range:
+      min: 10.0
+      max: 60.0
+    type: float
+    units: percent
+
+soil_wp:
+  description: Soil water content at wilting point (volumetric)
+  value:
+    default: 14.0
+    range:
+      min: 1.0
+      max: 40.0
+    type: float
+    units: percent
+
+soil_ksat:
+  description: Saturated hydraulic conductivity
+  value:
+    default: 602.0
+    range:
+      min: 1.0
+      max: 5000.0
+    type: float
+    units: mm/d
+
+soil_clay:
+  description: Clay content (for Rosetta pedotransfer)
+  value:
+    default: 25.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: percent
+
+soil_silt:
+  description: Silt content (for Rosetta pedotransfer)
+  value:
+    default: 40.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: percent
+
+soil_sand:
+  description: Sand content (for Rosetta pedotransfer)
+  value:
+    default: 35.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: percent
+
+soil_wc:
+  description: Initial soil water content (volumetric)
+  value:
+    default: 38.0
+    range:
+      min: 0.0
+      max: 70.0
+    type: float
+    units: percent
+
+soil_ec:
+  description: Electrical conductivity of soil saturation extract
+  value:
+    default: 0.2
+    range:
+      min: 0.0
+      max: 50.0
+    type: float
+    units: dS/m
+
+weather_source:
+  description: Source of weather data
+  value:
+    default: "nasa_power"
+    type: string
+
+weather_file:
+  description: Path to weather data file (if weather_source=file)
+  value:
+    default: ""
+    type: string
+
+preprocessing_enabled:
+  description: Enable automatic preprocessing of config to project files
+  value:
+    default: true
+    type: boolean
+
+soil_method:
+  description: Method for soil parameter determination
+  value:
+    default: "rosetta"
+    type: string
+
+cache_weather:
+  description: Cache weather data for reuse
+  value:
+    default: true
+    type: boolean
+
+output_directory:
+  description: Directory for output files
+  value:
+    default: "./output"
+    type: string
+
+save_daily:
+  description: Save daily time series output
+  value:
+    default: true
+    type: boolean
+
+save_final:
+  description: Save final state output
+  value:
+    default: true
+    type: boolean
+
+output_format:
+  description: Output file format
+  value:
+    default: "csv"
+    type: string
+
+calibration_enabled:
+  description: Enable calibration mode
+  value:
+    default: false
+    type: boolean
+
+calibration_target:
+  description: Target variable for calibration
+  value:
+    default: "yield"
+    type: string
+
+observed_yield:
+  description: Observed yield for calibration
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 50.0
+    type: float
+    units: t/ha
+
+sampling_range:
+  description: Sampling range for parameter perturbation
+  value:
+    default: 10.0
+    range:
+      min: 1.0
+      max: 100.0
+    type: float
+    units: percent
+
+base_temperature:
+  description: Base temperature for crop development
+  value:
+    default: 1.0
+    range:
+      min: 0.0
+      max: 20.0
+    type: float
+    units: degC
+
+upper_temperature:
+  description: Upper temperature for crop development
+  value:
+    default: 39.0
+    range:
+      min: 20.0
+      max: 50.0
+    type: float
+    units: degC
+
+plants_per_hectare:
+  description: Plant density
+  value:
+    default: 4000000
+    range:
+      min: 10000
+      max: 10000000
+    type: int
+    units: plants/ha
+
+max_canopy_cover:
+  description: Maximum canopy cover (CCx)
+  value:
+    default: 0.93
+    range:
+      min: 0.1
+      max: 1.0
+    type: float
+    units: fraction
+
+canopy_growth_coefficient:
+  description: Canopy growth coefficient (CGC)
+  value:
+    default: 0.11730
+    range:
+      min: 0.001
+      max: 0.5
+    type: float
+    units: 1/d
+
+canopy_decline_coefficient:
+  description: Canopy decline coefficient (CDC)
+  value:
+    default: 0.09513
+    range:
+      min: 0.001
+      max: 0.5
+    type: float
+    units: 1/d
+
+reference_harvest_index:
+  description: Reference Harvest Index (HIo)
+  value:
+    default: 59.0
+    range:
+      min: 10.0
+      max: 90.0
+    type: float
+    units: percent
+
+water_productivity:
+  description: Water Productivity normalized for ETo and CO2 (WP*)
+  value:
+    default: 18.11
+    range:
+      min: 5.0
+      max: 40.0
+    type: float
+    units: g/m2
+
+max_rooting_depth:
+  description: Maximum effective rooting depth
+  value:
+    default: 1.71
+    range:
+      min: 0.1
+      max: 5.0
+    type: float
+    units: m
+
+min_rooting_depth:
+  description: Minimum effective rooting depth
+  value:
+    default: 0.11
+    range:
+      min: 0.01
+      max: 1.0
+    type: float
+    units: m
+
+days_emergence:
+  description: Days from sowing to emergence
+  value:
+    default: 14
+    range:
+      min: 1
+      max: 60
+    type: int
+    units: d
+
+days_maturity:
+  description: Days from sowing to maturity
+  value:
+    default: 137
+    range:
+      min: 50
+      max: 500
+    type: int
+    units: d
+
+days_flowering:
+  description: Days from sowing to flowering
+  value:
+    default: 76
+    range:
+      min: 20
+      max: 300
+    type: int
+    units: d
+
+flowering_length:
+  description: Length of flowering stage
+  value:
+    default: 11
+    range:
+      min: 1
+      max: 50
+    type: int
+    units: d
+
+irrigation_method:
+  description: Irrigation method
+  value:
+    default: 0
+    range:
+      min: 0
+      max: 3
+    type: int
+    units: "-"
+
+irrigation_depth:
+  description: Irrigation water depth applied
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: mm
+
+irrigation_efficiency:
+  description: Irrigation application efficiency
+  value:
+    default: 100.0
+    range:
+      min: 50.0
+      max: 100.0
+    type: float
+    units: percent
+
+mulch_coverage:
+  description: Percentage of soil surface covered by mulches
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: percent
+
+soil_bunds_effect:
+  description: Effect of soil bunds on surface water storage
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 50.0
+    type: float
+    units: mm
+
+weed_coverage:
+  description: Weed coverage percentage
+  value:
+    default: 0.0
+    range:
+      min: 0.0
+      max: 100.0
+    type: float
+    units: percent
+
+co2_concentration:
+  description: Atmospheric CO2 concentration
+  value:
+    default: 369.41
+    range:
+      min: 300.0
+      max: 800.0
+    type: float
+    units: ppm
+
+p_exp_upper:
+  description: Water depletion threshold for canopy expansion (upper)
+  value:
+    default: 0.46
+    range:
+      min: 0.0
+      max: 1.0
+    type: float
+    units: fraction
+
+p_sto:
+  description: Water depletion threshold for stomatal closure
+  value:
+    default: 0.41
+    range:
+      min: 0.0
+      max: 1.0
+    type: float
+    units: fraction
+
+p_sen:
+  description: Water depletion threshold for senescence
+  value:
+    default: 0.77
+    range:
+      min: 0.0
+      max: 1.0
+    type: float
+    units: fraction
+
+ec_start_stress:
+  description: EC at which crop starts to be affected by salinity
+  value:
+    default: 3.0
+    range:
+      min: 0.0
+      max: 30.0
+    type: float
+    units: dS/m
+
+ec_no_growth:
+  description: EC at which crop can no longer grow
+  value:
+    default: 26.0
+    range:
+      min: 0.0
+      max: 50.0
+    type: float
+    units: dS/m

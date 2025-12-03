@@ -1,0 +1,79 @@
+time_step: 1
+time_step_units: day
+
+start_time: 2016-04-01
+end_time: 2016-09-15
+
+default_config: |
+  {
+    "crop_file": "Default Wheat, Calendar (Valenzano, 23Nov07)",
+    "fertility_stress": 10,
+    "gwt_depth": 10,
+    "gwt_ec": 0,
+    "point": {
+      "latitude": 51.167754,
+      "longitude": 40.757038
+    },
+    "seasons": [
+      {
+        "growing_season_start": "2016-04-01",
+        "growing_season_end": "2016-09-15",
+        "simulation_start": "2016-04-01",
+        "simulation_end": "2016-09-15"
+      }
+    ],
+    "soils": [
+      [
+        {
+          "thickness": 0.05,
+          "penetrability": 100,
+          "gravel": 0,
+          "wc": 0.38,
+          "ec": 0.2,
+          "clay": 25.9,
+          "silt": 42.7,
+          "sand": 31.4
+        },
+        {
+          "thickness": 0.1,
+          "penetrability": 100,
+          "gravel": 0,
+          "wc": 0.38,
+          "ec": 0.2,
+          "clay": 26.4,
+          "silt": 42.6,
+          "sand": 31.0
+        },
+        {
+          "thickness": 0.15,
+          "penetrability": 100,
+          "gravel": 0,
+          "wc": 0.38,
+          "ec": 0.2,
+          "clay": 29.8,
+          "silt": 41.2,
+          "sand": 29.0
+        },
+        {
+          "thickness": 0.3,
+          "penetrability": 100,
+          "gravel": 0,
+          "wc": 0.38,
+          "ec": 0.2,
+          "clay": 30.4,
+          "silt": 40.5,
+          "sand": 29.1
+        },
+        {
+          "thickness": 1.4,
+          "penetrability": 100,
+          "gravel": 0,
+          "wc": 0.38,
+          "ec": 0.2,
+          "clay": 31.2,
+          "silt": 40.3,
+          "sand": 28.5
+        }
+      ]
+    ]
+  }

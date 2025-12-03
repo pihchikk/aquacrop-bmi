@@ -1,0 +1,2 @@
+[console_scripts]
+bmipy-render = bmipy.cmd:main

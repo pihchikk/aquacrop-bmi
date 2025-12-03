@@ -1,0 +1,4 @@
+name: aquacrop_bmi_babel
+language: fortran
+package: aquacrop_bmi_babel
+class: AquaCrop

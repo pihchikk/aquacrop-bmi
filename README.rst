@@ -2,7 +2,7 @@
 aquacrop_bmi_babel
 ==================
 
-BMI wrapper for AquaCrop - FAO's crop water productivity model with full Basic Model Interface compliance and Windows Subsystem for Linux (WSL) support.
+BMI wrapper for AquaCrop - FAO's crop water productivity model with full Basic Model Interface compliance
 
 Features
 ========

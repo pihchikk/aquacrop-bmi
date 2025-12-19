@@ -2,95 +2,191 @@
 aquacrop_bmi_babel
 ==================
 
-BMI wrapper for AquaCrop - FAO's crop water productivity model with full Basic Model Interface compliance
+BMI wrapper for AquaCrop - FAO's crop water productivity model with full Basic Model Interface compliance.
 
 Features
 ========
 
 * Full BMI 2.0 standard implementation
-* Windows WSL support
-* JSON-based configuration
-* Initialize from JSON string or Python dict
+* JSON-based configuration with dict/string initialization
 * Automated weather data retrieval (NASA POWER API)
 * Built-in calibration tools
-* 11 input variables, 17 output variables
+* 17 real-time output variables including yield, biomass, canopy cover, and soil moisture
 
 Installation
 ============
 
-From Source (Development)::
+System Requirements
+-------------------
+
+Ubuntu/Debian::
+
+    sudo apt-get update
+    sudo apt-get install -y gfortran cmake pkg-config make git python3-dev
+
+
+
+Optional: Virtual Environment
+------------------------------
+
+Recommended but not required::
+
+    # Using venv
+    python3 -m venv ~/aquacrop_env
+    source ~/aquacrop_env/bin/activate
+    
+    # Or using conda
+    conda create -n aquacrop python=3.11 -y
+    conda activate aquacrop
+
+
+Build BMI-Fortran
+-----------------
+
+Required dependency::
+
+    git clone https://github.com/csdms/bmi-fortran
+    cd bmi-fortran
+    mkdir build && cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/.local
+    make && make install
+    export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
+
+Install PyMT (for model coupling)
+----------------------------------
+
+Dev version required (conda-forge version incompatible)::
+
+    git clone https://github.com/csdms/pymt
+    cd pymt
+    pip install -r requirements.txt
+    pip install -e .
+
+Install AquaCrop BMI
+--------------------
+
+From PyPI::
+
+    pip install aquacrop-bmi-babel
+
+From source::
 
     git clone https://github.com/pihchikk/aquacrop_bmi_babel.git
     cd aquacrop_bmi_babel
     pip install -e . --no-build-isolation
 
-From Source::
-
-    git clone https://github.com/pihchikk/aquacrop_bmi_babel.git
-    cd aquacrop_bmi_babel
-    pip install .
-
-System Requirements
--------------------
-
-Linux/WSL::
-
-    sudo apt-get install gfortran
-    conda install -c conda-forge bmi-fortran
-    pip install aquacrop-bmi-babel
 
 Usage
 =====
 
-Basic Example::
+Direct BMI (Recommended for Interactive Use)
+---------------------------------------------
+
+::
 
     from aquacrop_bmi_babel import AquaCrop
     import numpy as np
-
-    model = AquaCrop()
-    model.initialize("scenario.json")
-    
-    while model.get_current_time() < model.get_end_time():
-        model.update()
-    
-    yield_data = np.empty(1, dtype=np.float64)
-    model.get_value("crop__yield", yield_data)
-    print(f"Yield: {yield_data[0]:.2f} t/ha")
-    
-    model.finalize()
-
-New in v0.2.1
-=============
-
-Initialize from JSON string::
-
-    import json
-    from aquacrop_bmi_babel import AquaCrop
     
     config = {
         "gwt_depth": 5.0,
+        "gwt_ec": 0.0,
         "point": {"latitude": 39.9, "longitude": -105.2},
-        "seasons": [{"planting_date": "2020-05-01"}],
+        "seasons": [{
+            "planting_date": "2020-05-01",
+            "simulation_start": "2020-04-15",
+            "simulation_end": "2020-09-20",
+            "growing_season_start": "2020-04-15",
+            "growing_season_end": "2020-09-20"
+        }],
         "crop_file": "MaizeGDD",
-        "soils": [[{"thickness": 200.0, "sat": 0.50}]]
+        "soils": [[{
+            "thickness": 200.0, "sat": 0.50, "fc": 0.31, "pwp": 0.15,
+            "wc": 0.31, "penetrability": 100.0, "gravel": 0.0,
+            "ec": 0.5, "wp": 0.15, "ksat": 1200.0
+        }]],
+        "fertility_stress": 10
     }
     
     model = AquaCrop()
     model.initialize_from_dict(config)
+    
+    dest = np.empty(1, dtype=np.float64)
+    while model.get_current_time() < model.get_end_time():
+        model.update()
+        model.get_value("crop__yield", dest)
+    
+    print(f"Final yield: {dest[0]:.2f} t/ha")
+    model.finalize()
 
-WSL Support::
+PyMT Plugin (for Model Coupling)
+---------------------------------
 
-    # Works with Windows paths in WSL
-    model.initialize("/mnt/d/projects/scenario.json")
+::
 
-Links
-=====
+    from pymt.models import AquaCrop
+    import json
+    
+    with open('config.json', 'w') as f:
+        json.dump(config, f)
+    
+    model = AquaCrop()
+    model.initialize('config.json')
+    
+    while model.time < model.end_time:
+        model.update()
+    
+    yield_val = model.get_value("crop__yield")
+    model.finalize()
 
-* GitHub: https://github.com/pihchikk/aquacrop_bmi_babel
-* Documentation: https://aquacrop-bmi-babel.readthedocs.io
-* PyPI: https://pypi.org/project/aquacrop-bmi-babel/
+Configuration
+=============
 
-License
-=======
+Required Fields
+---------------
 
-MIT License
+Minimum required configuration::
+
+    {
+      "gwt_depth": 5.0,              // Groundwater depth (m)
+      "gwt_ec": 0.0,                 // Groundwater EC
+      "point": {"latitude": 39.9, "longitude": -105.2},
+      "seasons": [{
+        "planting_date": "2020-05-01",
+        "simulation_start": "2020-04-15",
+        "simulation_end": "2020-09-20",
+        "growing_season_start": "2020-04-15",
+        "growing_season_end": "2020-09-20"
+      }],
+      "crop_file": "MaizeGDD",
+      "soils": [[{
+        "thickness": 200.0, "sat": 0.50, "fc": 0.31,
+        "pwp": 0.15, "wc": 0.31, "penetrability": 100.0,
+        "gravel": 0.0, "ec": 0.5, "wp": 0.15, "ksat": 1200.0
+      }]],
+      "fertility_stress": 10
+    }
+
+Important: Use FLAT soil structure (all fields at top level), not nested "const" dict.
+
+Output Variables
+================
+
+Available for real-time monitoring (17 total)::
+
+    crop__canopy_cover, crop__biomass, crop__yield
+    soil__moisture, soil__moisture_layer_1 through layer_5
+    crop__water_stress, crop__temperature_stress
+    crop__aeration_stress, crop__salinity_stress
+    crop__rooting_depth, crop__transpiration
+    crop__evapotranspiration, crop__biomass_potential
+
+Troubleshooting
+===============
+
+pkg-config not found
+--------------------
+
+::
+
+    export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
+    pkg-config --modversion bmif  # Should return version number

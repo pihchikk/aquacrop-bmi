@@ -79,3 +79,5 @@ aquacrop_bmi_babel/data
 !README.rst
 !LICENSE.rst
 !CHANGES.rst
+venv/
+.venv/

@@ -75,6 +75,17 @@ From source::
     cd aquacrop_bmi_babel
     pip install -e . --no-build-isolation
 
+Development Setup
+-----------------
+
+For development with editable installations::
+
+    # Add PyMT to PYTHONPATH (if installed with -e)
+    export PYTHONPATH="/path/to/pymt:$PYTHONPATH"
+        
+    # Make persistent (add to ~/.bashrc):
+    echo 'export PYTHONPATH="/home/jovyan/work/pymt:$PYTHONPATH"' >> ~/.bashrc
+    source ~/.bashrc
 
 Usage
 =====

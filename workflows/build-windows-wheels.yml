@@ -1,0 +1,154 @@
+# =============================================================================
+# GitHub Actions для сборки Windows wheels
+# Репо: github.com/pihchikk/aquacrop-bmi (ветка pypi-version)
+#
+# Windows wheels нельзя собрать на Linux runners, поэтому используем
+# GitHub Actions (бесплатные Windows runners) в дополнение к GitLab CI.
+# =============================================================================
+
+name: Build Windows Wheels
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['pypi-version']
+  workflow_dispatch:  # Ручной запуск из UI
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Сборка Windows wheels
+  # ─────────────────────────────────────────────────────────────────────────
+  build_windows:
+    name: Windows wheel (Python ${{ matrix.python }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkg-config
+            git
+            make
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Build bmi-fortran from source
+        run: |
+          cd /tmp
+          git clone https://github.com/csdms/bmi-fortran.git
+          cd bmi-fortran
+          mkdir _build && cd _build
+          cmake .. \
+            -G "MinGW Makefiles" \
+            -DCMAKE_INSTALL_PREFIX=/mingw64 \
+            -DCMAKE_Fortran_COMPILER=gfortran
+          mingw32-make -j$(nproc)
+          mingw32-make install
+
+          # Проверить установку
+          pkg-config --cflags --libs bmif
+          echo "✓ bmi-fortran installed"
+
+      - name: Build wheel
+        run: |
+          # Найти Python из actions/setup-python (он в PATH Windows, не MSYS2)
+          PYEXE=$(which python || which python3)
+          echo "Using Python: $PYEXE"
+          $PYEXE --version
+
+          # Установить build tools
+          $PYEXE -m pip install --upgrade pip
+          $PYEXE -m pip install build meson-python meson ninja cython numpy wheel
+
+          # Собрать wheel (--no-isolation чтобы использовать установленные пакеты)
+          export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig:$PKG_CONFIG_PATH
+          $PYEXE -m build --wheel --no-isolation
+
+          ls -la dist/
+
+      - name: Test wheel
+        run: |
+          PYEXE=$(which python || which python3)
+          $PYEXE -m pip install dist/*.whl
+          $PYEXE -c "from aquacrop_bmi_babel import AquaCrop; print('✓ AquaCrop imported on Windows')"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-windows-py${{ matrix.python }}
+          path: dist/*.whl
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Загрузка на PyPI
+  # ─────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish Windows wheels to PyPI
+    needs: build_windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    # Для Trusted Publishing (рекомендуется PyPI):
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/aquacrop-bmi-babel
+
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: wheel-windows-*
+          merge-multiple: true
+
+      - name: Show collected wheels
+        run: ls -la dist/
+
+      # Вариант 1: Trusted Publishing (без токена, настраивается на pypi.org)
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Для TestPyPI замени на:
+        # with:
+        #   repository-url: https://test.pypi.org/legacy/
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Альтернатива: загрузка на TestPyPI (ручной запуск)
+  # ─────────────────────────────────────────────────────────────────────────
+  publish_test:
+    name: Publish Windows wheels to TestPyPI
+    needs: build_windows
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: wheel-windows-*
+          merge-multiple: true
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/

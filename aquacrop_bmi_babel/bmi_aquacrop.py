@@ -1,4 +1,4 @@
-"""
+initialize_from_dict"""
 BMI wrapper for calibration
 - crop-calibration: Calibrates crop parameters to match observed yields
 - fertility-stress-calibration: Finds optimal fertility stress values per season  

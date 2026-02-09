@@ -1,0 +1,159 @@
+# =============================================================================
+# GitLab CI/CD для aquacrop_bmi_babel
+# Собирает Linux wheels через cibuildwheel и загружает на PyPI/TestPyPI
+# =============================================================================
+
+stages:
+  - build
+  - test
+  - publish
+
+variables:
+  # Какие версии Python собирать
+  CIBW_BUILD: "cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64"
+  # Пропускаем PyPy, musl, 32-bit
+  CIBW_SKIP: "pp* *-musllinux* *-manylinux_i686"
+  # Увеличенный verbose для отладки
+  CIBW_BUILD_VERBOSITY: "1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Сборка Linux wheels
+# ─────────────────────────────────────────────────────────────────────────────
+build:linux:
+  stage: build
+  image: python:3.12
+  services:
+    - name: docker:dind
+      entrypoint: ["env", "-u", "DOCKER_HOST"]
+      command: ["dockerd-entrypoint.sh"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+    # ── cibuildwheel: установка зависимостей ВНУТРИ manylinux контейнера ──
+    # gfortran + cmake + bmi-fortran собираются перед каждым wheel
+    CIBW_BEFORE_ALL_LINUX: |
+      # Установить gfortran и cmake
+      yum install -y gcc-gfortran cmake3 git pkg-config || \
+      dnf install -y gcc-gfortran cmake git pkg-config || \
+      apt-get update && apt-get install -y gfortran cmake git pkg-config
+
+      # Если cmake3 установился как cmake3, сделать симлинк
+      which cmake || ln -s $(which cmake3) /usr/local/bin/cmake
+
+      # Собрать bmi-fortran из исходников
+      cd /tmp
+      git clone https://github.com/csdms/bmi-fortran.git
+      cd bmi-fortran
+      mkdir _build && cd _build
+      cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+      make -j$(nproc)
+      make install
+
+      # Проверить что pkg-config видит bmif
+      export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH
+      pkg-config --cflags --libs bmif
+
+    # Переменные окружения для сборки (pkg-config path)
+    CIBW_ENVIRONMENT_LINUX: >-
+      PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH
+      LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH
+
+    # Базовый тест после сборки
+    CIBW_TEST_COMMAND: >-
+      python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop imported')"
+
+  script:
+    - curl -sSL https://get.docker.com/ | sh
+    - pip install cibuildwheel==2.21.3
+    - cibuildwheel --output-dir wheelhouse --platform linux
+  artifacts:
+    paths:
+      - wheelhouse/
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == "pypi-version"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Сборка source distribution (sdist)
+# ─────────────────────────────────────────────────────────────────────────────
+build:sdist:
+  stage: build
+  image: python:3.12
+  before_script:
+    # Установить зависимости для сборки sdist
+    - apt-get update && apt-get install -y gfortran cmake pkg-config git
+    # Собрать bmi-fortran
+    - cd /tmp && git clone https://github.com/csdms/bmi-fortran.git
+    - cd bmi-fortran && mkdir _build && cd _build
+    - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && make -j$(nproc) && make install
+    - cd $CI_PROJECT_DIR
+    - export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+    - pip install build
+  script:
+    - python -m build --sdist
+    - ls -la dist/
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Тест: установка из собранного wheel
+# ─────────────────────────────────────────────────────────────────────────────
+test:install:
+  stage: test
+  image: python:3.12
+  needs: ["build:linux"]
+  script:
+    - pip install wheelhouse/*cp312*manylinux*.whl
+    - python -c "from aquacrop_bmi_babel import AquaCrop; m = AquaCrop(); print('✓ AquaCrop BMI loaded')"
+    - python -c "from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop; print('✓ BmiAquaCrop loaded')"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == "pypi-version"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Публикация на TestPyPI
+# ─────────────────────────────────────────────────────────────────────────────
+publish:testpypi:
+  stage: publish
+  image: python:3.12
+  needs: ["build:linux", "build:sdist", "test:install"]
+  script:
+    - pip install twine
+    - ls -la wheelhouse/ dist/
+    # Загрузить все wheels + sdist на TestPyPI
+    - twine upload --repository-url https://test.pypi.org/legacy/
+        --username __token__
+        --password $TESTPYPI_TOKEN
+        wheelhouse/*.whl dist/*.tar.gz
+  rules:
+    # Только при ручном запуске или по тегу
+    - if: $CI_COMMIT_TAG =~ /^v\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+  when: manual  # Требует ручного подтверждения
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Публикация на PyPI (production)
+# ─────────────────────────────────────────────────────────────────────────────
+publish:pypi:
+  stage: publish
+  image: python:3.12
+  needs: ["build:linux", "build:sdist", "test:install"]
+  script:
+    - pip install twine
+    - twine upload
+        --username __token__
+        --password $PYPI_TOKEN
+        wheelhouse/*.whl dist/*.tar.gz
+  rules:
+    # Только по тегу v*
+    - if: $CI_COMMIT_TAG =~ /^v\d+/
+  when: manual  # Требует ручного подтверждения

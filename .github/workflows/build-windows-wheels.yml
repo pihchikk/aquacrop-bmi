@@ -1,0 +1,109 @@
+name: Build Windows Wheels
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['pypi-version']
+  workflow_dispatch:
+
+jobs:
+  build_windows:
+    name: Windows wheel (Python ${{ matrix.python }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          # Inherit Windows PATH so MSYS2 sees Python from actions/setup-python
+          path-type: inherit
+          install: >-
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkg-config
+            git
+
+      - name: Build bmi-fortran from source
+        run: |
+          cd /tmp
+          git clone https://github.com/csdms/bmi-fortran.git
+          cd bmi-fortran
+          mkdir _build && cd _build
+          cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=/mingw64 -DCMAKE_Fortran_COMPILER=gfortran
+          ninja
+          ninja install
+          pkg-config --cflags --libs bmif
+          echo "bmi-fortran installed OK"
+
+      - name: Build wheel
+        run: |
+          python --version
+          python -m pip install --upgrade pip
+          python -m pip install build meson-python meson ninja cython numpy wheel
+
+          export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig:$PKG_CONFIG_PATH
+          python -m build --wheel --no-isolation
+
+          ls -la dist/
+
+      - name: Test wheel
+        run: |
+          python -m pip install dist/*.whl
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-windows-py${{ matrix.python }}
+          path: dist/*.whl
+
+  publish_test:
+    name: Publish Windows wheels to TestPyPI
+    needs: build_windows
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: wheel-windows-*
+          merge-multiple: true
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+
+  publish:
+    name: Publish Windows wheels to PyPI
+    needs: build_windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: wheel-windows-*
+          merge-multiple: true
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

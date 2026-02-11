@@ -22,24 +22,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
+          # Inherit Windows PATH so MSYS2 sees Python from actions/setup-python
+          path-type: inherit
           install: >-
             mingw-w64-x86_64-gcc-fortran
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-make
             git
-            make
-
-      - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
 
       - name: Build bmi-fortran from source
         run: |
@@ -55,24 +55,19 @@ jobs:
 
       - name: Build wheel
         run: |
-          # Find Python from actions/setup-python
-          PYEXE=$(which python || which python3)
-          echo "Using Python: $PYEXE"
-          $PYEXE --version
-
-          $PYEXE -m pip install --upgrade pip
-          $PYEXE -m pip install build meson-python meson ninja cython numpy wheel
+          python --version
+          python -m pip install --upgrade pip
+          python -m pip install build meson-python meson ninja cython numpy wheel
 
           export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig:$PKG_CONFIG_PATH
-          $PYEXE -m build --wheel --no-isolation
+          python -m build --wheel --no-isolation
 
           ls -la dist/
 
       - name: Test wheel
         run: |
-          PYEXE=$(which python || which python3)
-          $PYEXE -m pip install dist/*.whl
-          $PYEXE -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
+          python -m pip install dist/*.whl
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4

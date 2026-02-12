@@ -122,3 +122,6 @@ wrap = true
 [tool.zest-releaser]
 tag-format = "v{version}"
 python-file-with-version = "aquacrop_bmi_babel/_version.py"
+
+[tool.meson-python]
+allow-windows-internal-shared-libs = true

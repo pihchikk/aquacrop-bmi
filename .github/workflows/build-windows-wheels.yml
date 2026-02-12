@@ -69,33 +69,31 @@ jobs:
       - name: Build wheel
         shell: pwsh
         env:
-          # Tell meson to use MinGW compilers (compatible with each other)
           CC: gcc
           FC: gfortran
           PKG_CONFIG_PATH: D:\a\_temp\msys64\mingw64\lib\pkgconfig
         run: |
-          # Add MSYS2 MinGW64 tools to PATH
           $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
 
-          # Verify tools
-          gcc --version | Select-Object -First 1
-          gfortran --version | Select-Object -First 1
-          pkg-config --cflags --libs bmif
-          python --version
-
-          # Install build dependencies
           python -m pip install --upgrade pip
-          python -m pip install build meson-python meson ninja cython numpy wheel
+          python -m pip install build meson-python meson ninja cython numpy wheel delvewheel
 
-          # Build wheel (--no-isolation to use installed packages)
           python -m build --wheel --no-isolation
+
+          # Bundle MSYS2 DLLs (libgfortran, libquadmath, etc.) into wheel
+          $whl = (Get-ChildItem dist\*.whl).FullName
+          delvewheel repair $whl --wheel-dir dist-fixed\ --add-path "${{ env.MSYS2_ROOT }}\mingw64\bin"
+          
+          # Replace original with repaired wheel
+          Remove-Item dist\*.whl
+          Copy-Item dist-fixed\*.whl dist\
 
           Get-ChildItem dist\
 
       - name: Test wheel
         shell: pwsh
         run: |
-          $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
+          # NO MSYS2 in PATH - wheel must be self-contained!
           python -m pip install (Get-ChildItem dist\*.whl).FullName
           cd $env:TEMP
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"

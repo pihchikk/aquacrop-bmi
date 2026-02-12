@@ -1,5 +1,6 @@
 project(
     'aquacrop_bmi_babel',
+    'c',
     'fortran',
     'cython',
     version: '0.2.1',

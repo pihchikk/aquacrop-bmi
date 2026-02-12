@@ -6,6 +6,9 @@ on:
     branches: ['pypi-version']
   workflow_dispatch:
 
+env:
+  MSYS2_ROOT: D:\a\_temp\msys64
+
 jobs:
   build_windows:
     name: Windows wheel (Python ${{ matrix.python }})
@@ -14,10 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.10", "3.11", "3.12"]
-
-    defaults:
-      run:
-        shell: msys2 {0}
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +31,6 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          # Inherit Windows PATH so MSYS2 sees Python from actions/setup-python
           path-type: inherit
           install: >-
             mingw-w64-x86_64-gcc-fortran
@@ -41,7 +39,9 @@ jobs:
             mingw-w64-x86_64-pkg-config
             git
 
+      # bmi-fortran: build in MSYS2 shell (needs MSYS2 cmake/ninja/gfortran)
       - name: Build bmi-fortran from source
+        shell: msys2 {0}
         run: |
           cd /tmp
           git clone https://github.com/csdms/bmi-fortran.git
@@ -53,20 +53,35 @@ jobs:
           pkg-config --cflags --libs bmif
           echo "bmi-fortran installed OK"
 
+      # Wheel: build in PowerShell so meson finds Python dev files via sysconfig
+      # MSYS2 gfortran/pkg-config added to PATH
       - name: Build wheel
+        shell: pwsh
         run: |
+          # Add MSYS2 MinGW64 tools to PATH (gfortran, pkg-config, etc.)
+          $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
+          $env:PKG_CONFIG_PATH = "${{ env.MSYS2_ROOT }}\mingw64\lib\pkgconfig"
+
+          # Verify tools are available
+          gfortran --version
+          pkg-config --cflags --libs bmif
           python --version
+
+          # Install build dependencies
           python -m pip install --upgrade pip
           python -m pip install build meson-python meson ninja cython numpy wheel
 
-          export PKG_CONFIG_PATH=/mingw64/lib/pkgconfig:$PKG_CONFIG_PATH
+          # Build wheel
           python -m build --wheel --no-isolation
 
-          ls -la dist/
+          Get-ChildItem dist\
 
       - name: Test wheel
+        shell: pwsh
         run: |
-          python -m pip install dist/*.whl
+          # Need MSYS2 DLLs at runtime (libgfortran, libquadmath, etc.)
+          $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
+          python -m pip install (Get-ChildItem dist\*.whl).FullName
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
 
       - name: Upload wheel artifact

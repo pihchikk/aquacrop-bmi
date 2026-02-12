@@ -81,7 +81,7 @@ jobs:
           python -m build --wheel --no-isolation
 
           # Find meson build dir (contains libaquacropbmi.dll)
-          $builddir = (Get-ChildItem -Directory ".mesonpy-*" | Select-Object -First 1).FullName
+          $builddir = (Get-ChildItem -Directory -Force ".mesonpy-*" | Select-Object -First 1).FullName
           Write-Host "Meson build dir: $builddir"
           Get-ChildItem $builddir\*.dll
 

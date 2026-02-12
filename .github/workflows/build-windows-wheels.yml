@@ -97,6 +97,7 @@ jobs:
         run: |
           $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
           python -m pip install (Get-ChildItem dist\*.whl).FullName
+          cd $env:TEMP
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
 
       - name: Upload wheel artifact

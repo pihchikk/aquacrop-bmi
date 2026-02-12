@@ -80,14 +80,17 @@ jobs:
 
           python -m build --wheel --no-isolation
 
-          # Bundle MSYS2 DLLs (libgfortran, libquadmath, etc.) into wheel
+          # Find meson build dir (contains libaquacropbmi.dll)
+          $builddir = (Get-ChildItem -Directory ".mesonpy-*" | Select-Object -First 1).FullName
+          Write-Host "Meson build dir: $builddir"
+          Get-ChildItem $builddir\*.dll
+
+          # Bundle all DLLs (libgfortran, libquadmath, AND libaquacropbmi) into wheel
           $whl = (Get-ChildItem dist\*.whl).FullName
-          delvewheel repair $whl --wheel-dir dist-fixed\ --add-path "${{ env.MSYS2_ROOT }}\mingw64\bin"
-          
-          # Replace original with repaired wheel
+          delvewheel repair $whl --wheel-dir dist-fixed\ --add-path "${{ env.MSYS2_ROOT }}\mingw64\bin;$builddir"
+
           Remove-Item dist\*.whl
           Copy-Item dist-fixed\*.whl dist\
-
           Get-ChildItem dist\
 
       - name: Test wheel

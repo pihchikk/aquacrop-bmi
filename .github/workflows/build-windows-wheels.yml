@@ -33,13 +33,13 @@ jobs:
           update: true
           path-type: inherit
           install: >-
+            mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-fortran
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
             git
 
-      # bmi-fortran: build in MSYS2 shell (needs MSYS2 cmake/ninja/gfortran)
       - name: Build bmi-fortran from source
         shell: msys2 {0}
         run: |
@@ -53,17 +53,33 @@ jobs:
           pkg-config --cflags --libs bmif
           echo "bmi-fortran installed OK"
 
-      # Wheel: build in PowerShell so meson finds Python dev files via sysconfig
-      # MSYS2 gfortran/pkg-config added to PATH
-      - name: Build wheel
+      - name: Patch meson.build for Windows
         shell: pwsh
         run: |
-          # Add MSYS2 MinGW64 tools to PATH (gfortran, pkg-config, etc.)
-          $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
-          $env:PKG_CONFIG_PATH = "${{ env.MSYS2_ROOT }}\mingw64\lib\pkgconfig"
+          # Add 'c' language to project() so meson can compile Cython-generated C code
+          # Original:  'fortran', 'cython',
+          # Patched:   'c', 'fortran', 'cython',
+          $content = Get-Content meson.build -Raw
+          $content = $content -replace "'fortran',\s*'cython',", "'c', 'fortran', 'cython',"
+          Set-Content meson.build $content
+          
+          Write-Host "=== Patched meson.build (first 10 lines) ==="
+          Get-Content meson.build -Head 10
 
-          # Verify tools are available
-          gfortran --version
+      - name: Build wheel
+        shell: pwsh
+        env:
+          # Tell meson to use MinGW compilers (compatible with each other)
+          CC: gcc
+          FC: gfortran
+          PKG_CONFIG_PATH: D:\a\_temp\msys64\mingw64\lib\pkgconfig
+        run: |
+          # Add MSYS2 MinGW64 tools to PATH
+          $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
+
+          # Verify tools
+          gcc --version | Select-Object -First 1
+          gfortran --version | Select-Object -First 1
           pkg-config --cflags --libs bmif
           python --version
 
@@ -71,7 +87,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install build meson-python meson ninja cython numpy wheel
 
-          # Build wheel
+          # Build wheel (--no-isolation to use installed packages)
           python -m build --wheel --no-isolation
 
           Get-ChildItem dist\
@@ -79,7 +95,6 @@ jobs:
       - name: Test wheel
         shell: pwsh
         run: |
-          # Need MSYS2 DLLs at runtime (libgfortran, libquadmath, etc.)
           $env:PATH = "${{ env.MSYS2_ROOT }}\mingw64\bin;$env:PATH"
           python -m pip install (Get-ChildItem dist\*.whl).FullName
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"

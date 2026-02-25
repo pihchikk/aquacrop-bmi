@@ -82,16 +82,19 @@ class AquaCrop(FortranAquaCrop):
             try:
                 # Always ensure we're in original_cwd before starting
                 os.chdir(self._original_cwd)
-                
-                prep = BmiAquaCrop(original_cwd=self._original_cwd)
-                
+
+                # Use BmiAquaCrop for data generation only (init_fortran=False)
+                # This avoids initializing + finalizing a temporary Fortran instance
+                # which would destroy global Fortran state needed by self.
+                prep = BmiAquaCrop(original_cwd=self._original_cwd, init_fortran=False)
+
                 try:
                     prep.initialize(str(config_path))
                 except Exception as e:
                     # Restore cwd even if prep.initialize fails
                     os.chdir(self._original_cwd)
                     raise
-                
+
                 # Check if this was calibration-only mode
                 if getattr(prep, '_calibration_only', False):
                     print("Note: Calibration completed. BMI not initialized for simulation.")
@@ -99,46 +102,36 @@ class AquaCrop(FortranAquaCrop):
                     self._data_root = prep._data_root if hasattr(prep, '_data_root') else None
                     self._finalized = True
                     return
-                
+
                 data_root = Path(prep._data_root)
                 project_file = data_root / 'LIST' / 'project.PRO'
-                
+
                 if not project_file.exists():
                     raise FileNotFoundError(f"Preprocessing failed: {project_file}")
-                
+
                 # Move data to permanent location under outputs/
                 permanent_location = self._original_cwd / "outputs" / data_root.name
-                
+
                 if data_root != permanent_location and not data_root.is_relative_to(self._original_cwd):
                     permanent_location.parent.mkdir(parents=True, exist_ok=True)
-                    
+
                     if permanent_location.exists():
                         shutil.rmtree(permanent_location)
                     shutil.move(str(data_root), str(permanent_location))
-                    
+
                     data_root = permanent_location
                     project_file = data_root / 'LIST' / 'project.PRO'
-                
-                # Finalize prep BMI (needs to be in data_root for Fortran to write outputs)
-                try:
-                    os.chdir(data_root)
-                    prep._fortran_bmi.finalize()
-                except Exception as e:
-                    print(f"Warning: prep finalize failed: {e}")
-                finally:
-                    # Always restore cwd after prep finalize
-                    os.chdir(self._original_cwd)
-                
+
                 del prep
-                
+
                 self._data_root = data_root
                 print(f"Using preprocessed data: {data_root}")
-                
+
             finally:
                 # Cleanup temp directory
                 if data_root and not data_root.is_relative_to(temp_cwd):
                     shutil.rmtree(temp_cwd, ignore_errors=True)
-                
+
                 # CRITICAL: Always restore cwd, even if exception occurred
                 os.chdir(self._original_cwd)
             

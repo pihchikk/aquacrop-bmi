@@ -73,10 +73,11 @@ jobs:
 
       - name: Test wheel
         run: |
-          # Install into a clean prefix so we don't pollute build env
           python -m pip install dist/*.whl
+          python -m pip install pymt
           cd /tmp
-          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Linux')"
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
+          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -178,10 +179,11 @@ jobs:
       - name: Test wheel
         shell: pwsh
         run: |
-          # NO MSYS2 in PATH - wheel must be self-contained!
           python -m pip install (Get-ChildItem dist\*.whl).FullName
+          python -m pip install pymt
           cd $env:TEMP
-          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
+          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4

@@ -151,8 +151,12 @@ class BmiAquaCrop(Bmi):
         'crop__evapotranspiration',
     )
     
-    def __init__(self, original_cwd: Path | None = None) -> None:
-        self._fortran_bmi = FortranBMI()
+    def __init__(self, original_cwd: Path | None = None, init_fortran: bool = True) -> None:
+        self._init_fortran = init_fortran
+        if init_fortran:
+            self._fortran_bmi = FortranBMI()
+        else:
+            self._fortran_bmi = None
         self._config_file: Path | None = None
         self._scenario_data: ScenariosSimulationInput | None = None
         self._current_season_idx = 0
@@ -160,8 +164,8 @@ class BmiAquaCrop(Bmi):
         self._data_root: Path | None = None
         self._scenario_type = None
         self._calibration_results = {}
-        self._calibration_only = False  
-        
+        self._calibration_only = False
+
         try:
             self._original_cwd = original_cwd or safe_getcwd()
         except FileNotFoundError:
@@ -369,28 +373,29 @@ class BmiAquaCrop(Bmi):
     def _initialize_season(self) -> None:
         season = self._scenario_data.seasons[self._current_season_idx]
         soil = self._scenario_data.soils[self._current_soil_idx]
-        
+
         if self._scenario_type == 'fertility-stress-calibration':
             fertility_stress = self._calibration_results['fertility_stress_per_season'][
                 self._current_season_idx
             ]
         else:
             fertility_stress = self._scenario_data.fertility_stress
-        
+
         print(f"Initializing season {self._current_season_idx + 1}/"
               f"{len(self._scenario_data.seasons)}, "
               f"soil {self._current_soil_idx + 1}/{len(self._scenario_data.soils)}, "
               f"fertility_stress={fertility_stress}")
-        
+
         data_dir = self._generate_aquacrop_data(
             self._scenario_data, season, soil, fertility_stress
         )
         self._data_root = data_dir
-        
-        project_file = str(data_dir / "LIST" / "project.PRO")
-        with suppress_fortran_output():
-            self._fortran_bmi.initialize(project_file)
-        print(f"Season initialized")
+
+        if self._init_fortran and self._fortran_bmi is not None:
+            project_file = str(data_dir / "LIST" / "project.PRO")
+            with suppress_fortran_output():
+                self._fortran_bmi.initialize(project_file)
+            print(f"Season initialized")
 
     def update(self) -> None:
         self._fortran_bmi.update()
@@ -399,7 +404,8 @@ class BmiAquaCrop(Bmi):
         self._fortran_bmi.update_until(then)
     
     def finalize(self) -> None:
-        self._fortran_bmi.finalize()
+        if self._fortran_bmi is not None:
+            self._fortran_bmi.finalize()
         if self._data_root and self._data_root.exists():
             shutil.rmtree(self._data_root)
             self._data_root = None

@@ -1,4 +1,4 @@
-name: Build Windows Wheels
+name: Build and Publish Wheels
 
 on:
   push:
@@ -10,6 +10,78 @@ env:
   MSYS2_ROOT: D:\a\_temp\msys64
 
 jobs:
+  # ================================================================
+  # Linux wheels (manylinux_2_28 x86_64)
+  # ================================================================
+  build_linux:
+    name: Linux wheel (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux_2_28_x86_64
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          dnf install -y gcc-gfortran cmake pkgconfig git
+
+      - name: Set up Python ${{ matrix.python }}
+        run: |
+          PY_TAG=$(echo "${{ matrix.python }}" | tr -d '.')
+          PY_BIN=/opt/python/cp${PY_TAG}-cp${PY_TAG}/bin
+          echo "${PY_BIN}" >> $GITHUB_PATH
+          ${PY_BIN}/python --version
+
+      - name: Build bmi-fortran from source
+        run: |
+          cd /tmp
+          git clone https://github.com/csdms/bmi-fortran.git
+          cd bmi-fortran
+          mkdir _build && cd _build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_Fortran_COMPILER=gfortran
+          make -j$(nproc)
+          make install
+          ldconfig
+          PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig pkg-config --cflags --libs bmif
+          echo "bmi-fortran installed OK"
+
+      - name: Build wheel
+        env:
+          PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig
+          LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build meson-python meson ninja cython numpy wheel auditwheel patchelf
+          python -m build --wheel --no-isolation
+          echo "=== Built wheel ==="
+          ls -la dist/
+
+      - name: Repair wheel (bundle .so, tag manylinux)
+        env:
+          LD_LIBRARY_PATH: /usr/local/lib:/usr/local/lib64
+        run: |
+          auditwheel show dist/*.whl
+          auditwheel repair dist/*.whl --wheel-dir dist-fixed/
+          rm -f dist/*.whl
+          cp dist-fixed/*.whl dist/
+          echo "=== Repaired wheel ==="
+          ls -la dist/
+
+      - name: Test wheel
+        run: |
+          python -m pip install dist/*.whl
+          python -m pip install pymt
+          cd /tmp
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
+          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
+
+  # ================================================================
+  # Windows wheels (MSYS2 / MinGW64)
+  # ================================================================
   build_windows:
     name: Windows wheel (Python ${{ matrix.python }})
     runs-on: windows-latest
@@ -56,13 +128,16 @@ jobs:
       - name: Patch meson.build for Windows
         shell: pwsh
         run: |
-          # Add 'c' language to project() so meson can compile Cython-generated C code
-          # Original:  'fortran', 'cython',
-          # Patched:   'c', 'fortran', 'cython',
+          # Ensure 'c' language is in the project() call for Cython-generated C code
           $content = Get-Content meson.build -Raw
-          $content = $content -replace "'fortran',\s*'cython',", "'c', 'fortran', 'cython',"
-          Set-Content meson.build $content
-          
+          if ($content -notmatch "'c',\s*'fortran',") {
+            $content = $content -replace "'fortran',\s*'cython',", "'c', 'fortran', 'cython',"
+            Set-Content meson.build $content
+            Write-Host "Patched: added 'c' language to meson.build"
+          } else {
+            Write-Host "Already has 'c' language - no patch needed"
+          }
+
           Write-Host "=== Patched meson.build (first 10 lines) ==="
           Get-Content meson.build -Head 10
 
@@ -91,51 +166,17 @@ jobs:
 
           Remove-Item dist\*.whl
           Copy-Item dist-fixed\*.whl dist\
+
+          Write-Host "=== Built wheel ==="
           Get-ChildItem dist\
 
       - name: Test wheel
         shell: pwsh
         run: |
-          # NO MSYS2 in PATH - wheel must be self-contained!
           python -m pip install (Get-ChildItem dist\*.whl).FullName
+          python -m pip install pymt
           cd $env:TEMP
-          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
+          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
 
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheel-windows-py${{ matrix.python }}
-          path: dist/*.whl
-
-  publish_test:
-    name: Publish Windows wheels to TestPyPI
-    needs: build_windows
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: wheel-windows-*
-          merge-multiple: true
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.TESTPYPI_TOKEN }}
-          repository-url: https://test.pypi.org/legacy/
-
-  publish:
-    name: Publish Windows wheels to PyPI
-    needs: build_windows
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: wheel-windows-*
-          merge-multiple: true
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+ 

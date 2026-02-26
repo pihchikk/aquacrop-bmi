@@ -1,8 +1,7 @@
-name: Build Windows Wheels
+name: Build Wheels
 
 on:
   push:
-    tags: ['v*']
     branches: ['pypi-version']
   workflow_dispatch:
 
@@ -10,6 +9,107 @@ env:
   MSYS2_ROOT: D:\a\_temp\msys64
 
 jobs:
+  # ─── Linux wheels ───
+  build_linux:
+    name: Linux wheel (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran cmake ninja-build pkg-config
+
+      - name: Build bmi-fortran from source
+        run: |
+          cd /tmp
+          git clone https://github.com/csdms/bmi-fortran.git
+          cd bmi-fortran
+          mkdir _build && cd _build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_Fortran_COMPILER=gfortran
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          pkg-config --cflags --libs bmif
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build meson-python meson ninja cython numpy wheel
+          python -m build --wheel --no-isolation
+
+      - name: Repair wheel with auditwheel
+        run: |
+          python -m pip install auditwheel patchelf
+          auditwheel repair dist/*.whl --wheel-dir dist-fixed/
+          rm dist/*.whl
+          mv dist-fixed/*.whl dist/
+          ls -la dist/
+
+      - name: Test wheel
+        run: |
+          python -m pip install dist/*.whl
+          cd /tmp
+          python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Linux')"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-linux-py${{ matrix.python }}
+          path: dist/*.whl
+
+  # ─── Source distribution ───
+  build_sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran cmake ninja-build pkg-config
+
+      - name: Build bmi-fortran from source
+        run: |
+          cd /tmp
+          git clone https://github.com/csdms/bmi-fortran.git
+          cd bmi-fortran
+          mkdir _build && cd _build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_Fortran_COMPILER=gfortran
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+
+      - name: Build sdist
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build meson-python meson ninja cython numpy
+          python -m build --sdist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # ─── Windows wheels ───
   build_windows:
     name: Windows wheel (Python ${{ matrix.python }})
     runs-on: windows-latest
@@ -51,20 +151,13 @@ jobs:
           ninja
           ninja install
           pkg-config --cflags --libs bmif
-          echo "bmi-fortran installed OK"
 
       - name: Patch meson.build for Windows
         shell: pwsh
         run: |
-          # Add 'c' language to project() so meson can compile Cython-generated C code
-          # Original:  'fortran', 'cython',
-          # Patched:   'c', 'fortran', 'cython',
           $content = Get-Content meson.build -Raw
           $content = $content -replace "'fortran',\s*'cython',", "'c', 'fortran', 'cython',"
           Set-Content meson.build $content
-          
-          Write-Host "=== Patched meson.build (first 10 lines) ==="
-          Get-Content meson.build -Head 10
 
       - name: Build wheel
         shell: pwsh
@@ -80,13 +173,11 @@ jobs:
 
           python -m build --wheel --no-isolation
 
-          # Extract wheel to find libaquacropbmi.dll
           $whl = (Get-ChildItem dist\*.whl).FullName
           Expand-Archive $whl -DestinationPath wheel-tmp\
           $dlldir = (Get-ChildItem -Recurse wheel-tmp\ -Filter "libaquacropbmi.dll" | Select-Object -First 1).DirectoryName
           Write-Host "Found DLL in: $dlldir"
 
-          # Bundle all runtime DLLs into wheel
           delvewheel repair $whl --wheel-dir dist-fixed\ --add-path "${{ env.MSYS2_ROOT }}\mingw64\bin;$dlldir"
 
           Remove-Item dist\*.whl
@@ -96,7 +187,6 @@ jobs:
       - name: Test wheel
         shell: pwsh
         run: |
-          # NO MSYS2 in PATH - wheel must be self-contained!
           python -m pip install (Get-ChildItem dist\*.whl).FullName
           cd $env:TEMP
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: AquaCrop on Windows')"
@@ -106,36 +196,3 @@ jobs:
         with:
           name: wheel-windows-py${{ matrix.python }}
           path: dist/*.whl
-
-  publish_test:
-    name: Publish Windows wheels to TestPyPI
-    needs: build_windows
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: wheel-windows-*
-          merge-multiple: true
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.TESTPYPI_TOKEN }}
-          repository-url: https://test.pypi.org/legacy/
-
-  publish:
-    name: Publish Windows wheels to PyPI
-    needs: build_windows
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist/
-          pattern: wheel-windows-*
-          merge-multiple: true
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1

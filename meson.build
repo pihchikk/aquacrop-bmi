@@ -3,7 +3,7 @@ project(
     'c',
     'fortran',
     'cython',
-    version: '0.2.3',
+    version: '0.2.4',
 )
 
 py = import('python').find_installation(pure: false)

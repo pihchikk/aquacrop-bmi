@@ -1,0 +1,77 @@
+name: Publish to PyPI
+
+on:
+  # Manual trigger for TestPyPI
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish target'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+  # Auto-trigger on tags for PyPI
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    name: Publish to ${{ github.event.inputs.target || 'pypi' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download artifacts from the latest successful "Build Wheels" run
+      - name: Download build artifacts
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: build-wheels.yml
+          branch: pypi-version
+          workflow_conclusion: success
+          path: dist/
+
+      - name: Flatten dist directory
+        run: |
+          # Artifacts download into subdirectories, flatten them
+          mkdir -p flat-dist
+          find dist/ -name '*.whl' -exec cp {} flat-dist/ \;
+          find dist/ -name '*.tar.gz' -exec cp {} flat-dist/ \;
+          rm -rf dist
+          mv flat-dist dist
+          echo "=== Files to publish ==="
+          ls -la dist/
+
+      - name: Verify artifacts
+        run: |
+          # Must have Linux + Windows wheels + sdist
+          LINUX_COUNT=$(ls dist/*linux*.whl 2>/dev/null | wc -l)
+          WIN_COUNT=$(ls dist/*win*.whl 2>/dev/null | wc -l)
+          SDIST_COUNT=$(ls dist/*.tar.gz 2>/dev/null | wc -l)
+          echo "Linux wheels: $LINUX_COUNT"
+          echo "Windows wheels: $WIN_COUNT"
+          echo "Source dists: $SDIST_COUNT"
+          
+          if [ "$LINUX_COUNT" -eq 0 ] || [ "$WIN_COUNT" -eq 0 ]; then
+            echo "ERROR: Missing platform wheels!"
+            exit 1
+          fi
+          echo "All platforms present ✓"
+
+      # TestPyPI (manual dispatch)
+      - name: Publish to TestPyPI
+        if: >
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TESTPYPI_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+
+      # PyPI (tag push OR manual dispatch with pypi target)
+      - name: Publish to PyPI
+        if: >
+          startsWith(github.ref, 'refs/tags/v') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'pypi')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}

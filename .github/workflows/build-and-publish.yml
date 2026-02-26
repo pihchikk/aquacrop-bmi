@@ -212,6 +212,7 @@ jobs:
         with:
           password: ${{ secrets.TESTPYPI_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
   # ================================================================
   # Publish all wheels to PyPI (on version tags only)

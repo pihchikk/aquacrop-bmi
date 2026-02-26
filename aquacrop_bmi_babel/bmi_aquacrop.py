@@ -641,7 +641,8 @@ class BmiAquaCrop(Bmi):
     
     def _run_fertility_stress_calibration(self, config: dict) -> dict:
         input_data = FertilityStressCalibrationInput(**config)
-        crop_name, crop_index, crop_params = loads_crop_file(input_data.crop_file)
+        crop_file_text = self._resolve_crop_file(input_data.crop_file)
+        crop_name, crop_index, crop_params = loads_crop_file(crop_file_text)
         
         samples, stress_samples = self._sample_crop_params_with_stress(crop_params, input_data)
         
@@ -835,10 +836,44 @@ class BmiAquaCrop(Bmi):
             traceback.print_exc()
             return 1e6
         
+    def _resolve_crop_file(self, crop_file: str) -> str:
+        """Resolve crop_file to full CRO text.
+
+        Accepts either:
+        - Full CRO text (multi-line with ':' delimiters)
+        - Built-in crop name like "Maize", "MaizeGDD", "Wheat"
+        """
+        # If it looks like full CRO text, return as-is
+        if ':' in crop_file and '\n' in crop_file:
+            return crop_file
+
+        # Try to resolve as a built-in crop name
+        from .data_modules import CropRef
+
+        name = crop_file.strip()
+        # Strip common suffixes to find the base crop name
+        for suffix in ('GDD', 'Cal', 'Calendar'):
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+                break
+
+        # Try exact match, then case-insensitive
+        for ref in CropRef:
+            if ref.value == name or ref.value.lower() == name.lower():
+                crop_path = Path(__file__).parent / 'data_modules' / 'crops' / f'{ref.value}.CRO'
+                if crop_path.exists():
+                    return crop_path.read_text()
+
+        raise ValueError(
+            f"Unknown crop_file: '{crop_file}'. "
+            f"Pass full CRO text or a built-in name: {[r.value for r in CropRef]}"
+        )
+
     def _generate_aquacrop_data(
         self, data: ScenariosSimulationInput, season, soil, fertility_stress
     ) -> Path:
-        _, crop_index, crop_params = loads_crop_file(data.crop_file)
+        crop_file_text = self._resolve_crop_file(data.crop_file)
+        _, crop_index, crop_params = loads_crop_file(crop_file_text)
         point = self._normalize_point(data.point)
         
         weather_data = get_weather_data(

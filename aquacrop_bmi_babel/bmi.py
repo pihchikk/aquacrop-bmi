@@ -4,25 +4,32 @@ import json
 import tempfile
 import shutil
 from aquacrop_bmi_babel._bmi import AquaCrop as FortranAquaCrop
-from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop
+from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop, suppress_fortran_output
 
 
 class AquaCrop(FortranAquaCrop):
     """
     BMI wrapper for AquaCrop with robust working directory management.
-    
+
     This class ensures that the working directory is always restored to its
     original state, even when errors occur during initialization or finalization.
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        If True, print Fortran debug output during initialization.
+        Default is False (output suppressed).
     """
-    
+
     METADATA = "data/AquaCrop"
-    
-    def __init__(self):
+
+    def __init__(self, verbose: bool = False):
         super().__init__()
         self._temp_dir = None
         self._data_root = None
         self._finalized = False
-        
+        self._verbose = verbose
+
         # Save original working directory ONCE in __init__
         # This prevents overwriting with wrong path on subsequent calls
         try:
@@ -137,12 +144,20 @@ class AquaCrop(FortranAquaCrop):
             
             # Initialize Fortran BMI with project file
             # Note: Fortran changes cwd to data_root - we restore it immediately
-            super().initialize(str(project_file))
+            if self._verbose:
+                super().initialize(str(project_file))
+            else:
+                with suppress_fortran_output():
+                    super().initialize(str(project_file))
             os.chdir(self._original_cwd)  # Restore cwd after Fortran init
-            
+
         else:
             # Direct .PRO file initialization
-            super().initialize(str(config_path))
+            if self._verbose:
+                super().initialize(str(config_path))
+            else:
+                with suppress_fortran_output():
+                    super().initialize(str(config_path))
             os.chdir(self._original_cwd)  # Restore cwd after Fortran init
         
         self._finalized = False

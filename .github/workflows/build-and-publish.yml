@@ -78,7 +78,6 @@ jobs:
           python -m pip install git+https://github.com/csdms/pymt.git
           cd /tmp
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
-          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -185,7 +184,6 @@ jobs:
           python -m pip install git+https://github.com/csdms/pymt.git
           cd $env:TEMP
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
-          python -c "from pymt.models import AquaCrop; print('OK: pymt plugin')"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4

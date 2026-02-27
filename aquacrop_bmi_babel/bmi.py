@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import tempfile
 import shutil
+import numpy as np
 from aquacrop_bmi_babel._bmi import AquaCrop as FortranAquaCrop
 from aquacrop_bmi_babel.bmi_aquacrop import BmiAquaCrop, suppress_fortran_output
 
@@ -209,6 +210,22 @@ class AquaCrop(FortranAquaCrop):
                     os.chdir("/tmp")
         
         self._finalized = True
+
+    def get_all_outputs(self) -> dict[str, float | None]:
+        """Get all output variables in one call.
+
+        Returns a dict mapping variable name to its current scalar value,
+        or None if the variable could not be read.
+        """
+        result = {}
+        for var in self.get_output_var_names():
+            dest = np.empty(1, dtype=np.float64)
+            try:
+                self.get_value(var, dest)
+                result[var] = dest[0]
+            except Exception:
+                result[var] = None
+        return result
 
 
 __all__ = ["AquaCrop"]

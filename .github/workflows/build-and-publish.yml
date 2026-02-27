@@ -74,6 +74,7 @@ jobs:
       - name: Test wheel
         run: |
           python -m pip install dist/*.whl
+          python -m pip install setuptools
           python -m pip install git+https://github.com/csdms/pymt.git
           cd /tmp
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"
@@ -180,6 +181,7 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install (Get-ChildItem dist\*.whl).FullName
+          python -m pip install setuptools
           python -m pip install git+https://github.com/csdms/pymt.git
           cd $env:TEMP
           python -c "from aquacrop_bmi_babel import AquaCrop; print('OK: direct import')"

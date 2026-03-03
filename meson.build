@@ -61,6 +61,7 @@ install_pkg_srcs = [
     'aquacrop_bmi_babel/util.py',
     'aquacrop_bmi_babel/settings.py',
     'aquacrop_bmi_babel/soil_texture.py',
+    'aquacrop_bmi_babel/validation.py',
     'aquacrop_bmi_babel/main.py',
 ]
 py.install_sources(install_pkg_srcs, subdir: 'aquacrop_bmi_babel')

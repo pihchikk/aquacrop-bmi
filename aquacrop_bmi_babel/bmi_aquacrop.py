@@ -31,6 +31,7 @@ from .util import (
     dump_crop_file
 )
 from .soil_texture import get_soil_params
+from .validation import validate_all, AquaCropValidationError
 from .data_modules import get_crop_params
 from .settings import settings
 from .models import (
@@ -234,6 +235,8 @@ class BmiAquaCrop(Bmi):
             
         except httpx.ReadTimeout:
             print(self._format_network_error())
+            raise
+        except AquaCropValidationError:
             raise
         except Exception as e:
             print(f"\nInitialization error: {type(e).__name__}")
@@ -882,7 +885,16 @@ class BmiAquaCrop(Bmi):
         )
         
         soil_params = get_soil_params(soil)
-        
+
+        # Validate all inputs BEFORE writing files for Fortran.
+        # Catches int8 overflows, impossible soil combos, division-by-zero
+        # triggers, etc. that would otherwise cause cryptic Fortran crashes.
+        validate_all(
+            soil_layers=soil_params,
+            fertility_stress=fertility_stress,
+            seasons=[season],
+        )
+
         if hasattr(self, '_original_cwd') and self._original_cwd:
             original_cwd = self._original_cwd
         else:

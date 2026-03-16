@@ -47,6 +47,23 @@ class Season(BaseModel):
     growing_season_start: date
     growing_season_end: date
 
+    @model_validator(mode='after')
+    def check_date_order(self) -> Self:
+        errors = []
+        if self.simulation_end <= self.simulation_start:
+            errors.append(
+                f"simulation_end ({self.simulation_end}) must be after "
+                f"simulation_start ({self.simulation_start})"
+            )
+        if self.growing_season_end <= self.growing_season_start:
+            errors.append(
+                f"growing_season_end ({self.growing_season_end}) must be after "
+                f"growing_season_start ({self.growing_season_start})"
+            )
+        if errors:
+            raise ValueError('; '.join(errors))
+        return self
+
 
 
 class CalibrationSeason(Season):

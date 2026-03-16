@@ -877,6 +877,7 @@ class BmiAquaCrop(Bmi):
     ) -> Path:
         crop_file_text = self._resolve_crop_file(data.crop_file)
         _, crop_index, crop_params = loads_crop_file(crop_file_text)
+        season = self._fix_season_dates(season, crop_params)
         point = self._normalize_point(data.point)
         
         weather_data = get_weather_data(
@@ -937,7 +938,46 @@ class BmiAquaCrop(Bmi):
         altitude = get_elevation(latitude, longitude)
         
         return Point3D(latitude=latitude, longitude=longitude, altitude=altitude)
-        
+
+    def _fix_season_dates(self, season, crop_params):
+        """Auto-correct season dates to prevent Fortran EOF crashes.
+
+        1. growing_season_start must be >= simulation_start
+        2. growing_season_end must be > growing_season_start
+        3. simulation_end must be >= growing_season_end
+        4. GDD crops: add 30-day safety buffer (actual cycle length is
+           computed dynamically from temperatures at runtime)
+        """
+        from copy import deepcopy
+        from datetime import timedelta
+
+        s = deepcopy(season)
+
+        if s.growing_season_start < s.simulation_start:
+            print(f"Warning: growing_season_start adjusted to {s.simulation_start}")
+            s.growing_season_start = s.simulation_start
+
+        if s.growing_season_end <= s.growing_season_start:
+            print(f"Warning: growing_season_end adjusted to {s.simulation_end}")
+            s.growing_season_end = s.simulation_end
+
+        if s.simulation_end < s.growing_season_end:
+            print(f"Warning: simulation_end extended to {s.growing_season_end}")
+            s.simulation_end = s.growing_season_end
+
+        # GDD crop: value 0 means modeCycle_GDDays
+        is_gdd_crop = crop_params.get(
+            'Determination of crop cycle : by calendar days', 1
+        ) == 0
+
+        if is_gdd_crop:
+            min_end = s.growing_season_end + timedelta(days=30)
+            if s.simulation_end < min_end:
+                s.simulation_end = min_end
+                print(f"Warning: simulation_end extended to {min_end} (GDD crop buffer)")
+
+        return s
+
     def get_var_grid(self, var_name: str) -> int:
         return 0
     

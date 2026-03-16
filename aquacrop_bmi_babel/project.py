@@ -76,10 +76,20 @@ class AquacropProject:
             tnx.write(header_template.format(columns='Tmin (C)   TMax (C)'))
             plu.write(header_template.format(columns='Total Rain (mm)'))
             et0.write(header_template.format(columns='Average ETo (mm/day)'))
+            row_count = 0
             for row in data:
                 tnx.write(f'{row.tn:.1f}\t{row.tx:.1f}\n')
                 plu.write(f'{row.pr:.1f}\n')
                 et0.write(f'{row.et0:.1f}\n')
+                row_count += 1
+
+        if row_count == 0:
+            raise ValueError(
+                "Weather data is empty — NASA POWER API returned no data. "
+                "Check coordinates and date range."
+            )
+
+        print(f"Climate files written: {row_count} days")
 
 
     def write_soil_file(

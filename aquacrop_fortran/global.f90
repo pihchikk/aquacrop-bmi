@@ -5362,6 +5362,7 @@ real(dp) function SeasonalSumOfKcPot(TheDaysToCCini, TheGDDaysToCCini, L0, L12, 
     real(dp) :: CCinitial, DayFraction, GDDayFraction
     integer(int32) :: DayCC, Tadj, GDDTadj
     integer :: fhandle
+    integer :: ios
     integer(int32) :: Dayi
     logical :: GrowthON
 
@@ -5427,7 +5428,11 @@ real(dp) function SeasonalSumOfKcPot(TheDaysToCCini, TheGDDaysToCCini, L0, L12, 
     do Dayi = 1, L1234
         ! 3.1 calculate growing degrees for the day
         if (GetTemperatureFile() /= '(None)') then
-            read(fhandle, *) Tndayi, Txdayi
+            read(fhandle, *, iostat=ios) Tndayi, Txdayi
+            if (ios /= 0) then
+                Tndayi = TDayMin
+                Txdayi = TDayMax
+            end if
             GDDi = DegreesDay(Tbase, Tupper, Tndayi, Txdayi, &
                                     GetSimulParam_GDDMethod())
         else

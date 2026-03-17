@@ -20,16 +20,20 @@ class AquaCrop(FortranAquaCrop):
     verbose : bool, optional
         If True, print Fortran debug output during initialization.
         Default is False (output suppressed).
+    cleanup : bool, optional
+        If True, delete generated data files on finalize().
+        Default is True. Set to False to keep files for debugging.
     """
 
     METADATA = "data/AquaCrop"
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, cleanup: bool = True):
         super().__init__()
         self._temp_dir = None
         self._data_root = None
         self._finalized = False
         self._verbose = verbose
+        self._cleanup = cleanup
 
         # Save original working directory ONCE in __init__
         # This prevents overwriting with wrong path on subsequent calls
@@ -48,7 +52,8 @@ class AquaCrop(FortranAquaCrop):
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - ensures finalize() is always called"""
-        self.finalize()
+        if not self._finalized:
+            self.finalize()
         return False  # Don't suppress exceptions
     
     def initialize_from_json(self, json_str: str) -> None:
@@ -208,7 +213,12 @@ class AquaCrop(FortranAquaCrop):
                     os.chdir(Path.home())
                 except:
                     os.chdir("/tmp")
-        
+
+        # Cleanup generated data files
+        if self._cleanup and self._data_root and self._data_root.exists():
+            shutil.rmtree(self._data_root, ignore_errors=True)
+            self._data_root = None
+
         self._finalized = True
 
     def get_all_outputs(self) -> dict[str, float | None]:

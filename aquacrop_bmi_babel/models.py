@@ -300,18 +300,44 @@ class CropOverrides(BaseModel):
     fertility_stress: Annotated[
         int | None,
         Field(
-            serialization_alias='Considered soil fertility stress for calibration of stress response (%)',
+            serialization_alias='Soil fertility stress for calibration of stress response (%)',
             ge=0, le=100,
         ),
     ] = None
 
+    _FIELD_TO_CRO = {
+        'emergence_day': 'Calendar Days: from sowing to emergence',
+        'max_rooting_day': 'Calendar Days: from sowing to maximum rooting depth',
+        'senescence_day': 'Calendar Days: from sowing to start senescence',
+        'maturity_day': 'Calendar Days: from sowing to maturity (length of crop cycle)',
+        'flowering_day': 'Calendar Days: from sowing to flowering',
+        'flowering_duration': 'Length of the flowering stage (days)',
+        'hi_duration': 'Building up of Harvest Index starting at flowering (days)',
+        'plants_per_hectare': 'Number of plants per hectare',
+        'ccx': 'Maximum canopy cover (CCx) in fraction soil cover',
+        'cgc': 'Canopy growth coefficient (CGC): Increase in canopy cover (fraction soil cover per day)',
+        'cdc': 'Canopy decline coefficient (CDC): Decrease in canopy cover (in fraction per day)',
+        'seedling_size': 'Soil surface covered by an individual seedling at 90 % emergence (cm2)',
+        'root_min': 'Minimum effective rooting depth (m)',
+        'root_max': 'Maximum effective rooting depth (m)',
+        'harvest_index': 'Reference Harvest Index (HIo) (%)',
+        'wp_star': 'Water Productivity normalized for ETo and CO2 (WP*) (gram/m2)',
+        'base_temp': 'Base temperature (°C) below which crop development does not progress',
+        'upper_temp': 'Upper temperature (°C) above which crop development no longer increases with an increase in temperature',
+        'pollination_cold': 'Minimum air temperature below which pollination starts to fail (cold stress) (°C)',
+        'pollination_heat': 'Maximum air temperature above which pollination starts to fail (heat stress) (°C)',
+        'kc_max': 'Crop coefficient when canopy is complete but prior to senescence (KcTr,x)',
+        'fertility_stress': 'Considered soil fertility stress for calibration of stress response (%)',
+    }
+
     def to_cro_overrides(self) -> dict[str, int | float]:
         """Return {CRO_key: value} for non-None fields only."""
-        return {
-            field.alias: getattr(self, name)
-            for name, field in self.model_fields.items()
-            if (alias := field.alias) and getattr(self, name) is not None
-        }
+        result = {}
+        for py_name, cro_key in self._FIELD_TO_CRO.items():
+            val = getattr(self, py_name)
+            if val is not None:
+                result[cro_key] = val
+        return result
 
 
 

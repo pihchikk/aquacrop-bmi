@@ -170,6 +170,151 @@ class CropParams(BaseModel):
 
 
 
+class CropOverrides(BaseModel):
+    """Optional crop parameter overrides applied on top of the base CRO file.
+
+    Every field is optional — only provided values override the CRO defaults.
+    Field names are short Python names; ``serialization_alias`` holds the
+    exact CRO key used internally by ``loads_crop_file`` / ``dump_crop_file``.
+    """
+
+    # ── Phenology (calendar days) ───────────────────────────────────
+    emergence_day: Annotated[
+        int | None,
+        Field(serialization_alias='Calendar Days: from sowing to emergence'),
+    ] = None
+    max_rooting_day: Annotated[
+        int | None,
+        Field(serialization_alias='Calendar Days: from sowing to maximum rooting depth'),
+    ] = None
+    senescence_day: Annotated[
+        int | None,
+        Field(serialization_alias='Calendar Days: from sowing to start senescence'),
+    ] = None
+    maturity_day: Annotated[
+        int | None,
+        Field(serialization_alias='Calendar Days: from sowing to maturity (length of crop cycle)'),
+    ] = None
+    flowering_day: Annotated[
+        int | None,
+        Field(serialization_alias='Calendar Days: from sowing to flowering'),
+    ] = None
+    flowering_duration: Annotated[
+        int | None,
+        Field(serialization_alias='Length of the flowering stage (days)'),
+    ] = None
+    hi_duration: Annotated[
+        int | None,
+        Field(serialization_alias='Building up of Harvest Index starting at flowering (days)'),
+    ] = None
+
+    # ── Canopy ──────────────────────────────────────────────────────
+    plants_per_hectare: Annotated[
+        int | None,
+        Field(serialization_alias='Number of plants per hectare'),
+    ] = None
+    ccx: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Maximum canopy cover (CCx) in fraction soil cover',
+            gt=0, le=1,
+        ),
+    ] = None
+    cgc: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Canopy growth coefficient (CGC): Increase in canopy cover (fraction soil cover per day)',
+            gt=0,
+        ),
+    ] = None
+    cdc: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Canopy decline coefficient (CDC): Decrease in canopy cover (in fraction per day)',
+            gt=0,
+        ),
+    ] = None
+    seedling_size: Annotated[
+        float | None,
+        Field(serialization_alias='Soil surface covered by an individual seedling at 90 % emergence (cm2)'),
+    ] = None
+
+    # ── Rooting ─────────────────────────────────────────────────────
+    root_min: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Minimum effective rooting depth (m)',
+            gt=0,
+        ),
+    ] = None
+    root_max: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Maximum effective rooting depth (m)',
+            gt=0,
+        ),
+    ] = None
+
+    # ── Yield ───────────────────────────────────────────────────────
+    harvest_index: Annotated[
+        int | None,
+        Field(
+            serialization_alias='Reference Harvest Index (HIo) (%)',
+            gt=0, le=100,
+        ),
+    ] = None
+    wp_star: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Water Productivity normalized for ETo and CO2 (WP*) (gram/m2)',
+            gt=0,
+        ),
+    ] = None
+
+    # ── Temperature ─────────────────────────────────────────────────
+    base_temp: Annotated[
+        float | None,
+        Field(serialization_alias='Base temperature (°C) below which crop development does not progress'),
+    ] = None
+    upper_temp: Annotated[
+        float | None,
+        Field(serialization_alias='Upper temperature (°C) above which crop development no longer increases with an increase in temperature'),
+    ] = None
+    pollination_cold: Annotated[
+        int | None,
+        Field(serialization_alias='Minimum air temperature below which pollination starts to fail (cold stress) (°C)'),
+    ] = None
+    pollination_heat: Annotated[
+        int | None,
+        Field(serialization_alias='Maximum air temperature above which pollination starts to fail (heat stress) (°C)'),
+    ] = None
+
+    # ── Water stress ────────────────────────────────────────────────
+    kc_max: Annotated[
+        float | None,
+        Field(
+            serialization_alias='Crop coefficient when canopy is complete but prior to senescence (KcTr,x)',
+            gt=0,
+        ),
+    ] = None
+    fertility_stress: Annotated[
+        int | None,
+        Field(
+            serialization_alias='Considered soil fertility stress for calibration of stress response (%)',
+            ge=0, le=100,
+        ),
+    ] = None
+
+    def to_cro_overrides(self) -> dict[str, int | float]:
+        """Return {CRO_key: value} for non-None fields only."""
+        return {
+            field.alias: getattr(self, name)
+            for name, field in self.model_fields.items()
+            if (alias := field.alias) and getattr(self, name) is not None
+        }
+
+
+
 class InputBase(BaseModel):
     gwt_depth: Annotated[float, Field(description='Уровень грунтовых вод, м')]
     gwt_ec: Annotated[float, Field(description='Электропроводность грунтовых вод')]
@@ -252,6 +397,13 @@ class ScenariosSimulationInput(CropFileMixin, InputBase):
     fertility_stress: Annotated[
         IntPercent,
         Field(description='Стресс минерального питания (%)'),
+    ]
+    crop_params: Annotated[
+        CropOverrides | None,
+        Field(
+            default=None,
+            description='Опциональные переопределения параметров культуры (поверх crop_file)',
+        ),
     ]
 
 

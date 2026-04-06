@@ -877,6 +877,14 @@ class BmiAquaCrop(Bmi):
     ) -> Path:
         crop_file_text = self._resolve_crop_file(data.crop_file)
         _, crop_index, crop_params = loads_crop_file(crop_file_text)
+
+        # Apply user-provided crop parameter overrides
+        if data.crop_params is not None:
+            overrides = data.crop_params.to_cro_overrides()
+            if overrides:
+                crop_params.update(overrides)
+                print(f"Applied {len(overrides)} crop parameter override(s)")
+
         season = self._fix_season_dates(season, crop_params)
         point = self._normalize_point(data.point)
         

@@ -93,7 +93,7 @@ OBJ = climprocessing.o \
     utils.o
 
 # BMI-specific objects
-# Note: bmif_2_0 module comes from our local implementation
+# Note: bmif_2_0 module comes from installed bmi-fortran (/usr/local)
 BMI_OBJ = bmif.o bmi_aquacrop.o
 
 $(STATIC_LIBRARY): $(OBJ) \
@@ -200,7 +200,6 @@ utils.o: utils.f90 \
 # No need to compile bmif_2_0.f90 - it's provided by the system
 bmif.o: bmif.f90
 	$(FC) $(FCFLAGS) $(BMI_CFLAGS) -c $< -o $@
-
 # BMI AquaCrop wrapper 
 bmi_aquacrop.o: bmi_aquacrop.f90 \
     global.o \

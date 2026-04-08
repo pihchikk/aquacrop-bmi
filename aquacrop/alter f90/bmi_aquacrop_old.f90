@@ -1,13 +1,9 @@
 module aquacropbmi
 
-use ac_kinds, only: dp, int32, int8
+use ac_kinds, only: dp, int32
 use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetSumWaBal_YieldPart, GetRootZoneWC_Actual, &
-                     GetSimulation_FromDayNr, GetSimulation_ToDayNr, &
-                     SetManagement_FertilityStress, GetManagement_FertilityStress, &
-                     CropStressParametersSoilFertility, GetCrop_StressResponse, &
-                     GetSimulation_EffectStress, SetSimulation_EffectStress, &
-                     rep_EffectStress
+                     GetSimulation_FromDayNr, GetSimulation_ToDayNr
 use ac_run, only: BMI_SimulateOneDay, GetDayNri
 use ac_startunit, only: BMI_InitializeAquaCrop, BMI_FinalizeAquaCrop
 use bmif_2_0
@@ -118,7 +114,7 @@ integer, parameter :: output_item_count = 4
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
-    'crop__fertility_stress  ' &
+    'crop__fertility_stress' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -153,7 +149,6 @@ character(len=*), intent(in) :: config_file
 integer :: bmi_status
 integer :: aquacrop_status
 integer(int32) :: from_day, to_day
-type(rep_EffectStress) :: EffectStress_init  ! For initializing fertility stress
 
 ! Call AquaCrop initialization
 ! This loads the project file and sets up the simulation
@@ -165,28 +160,6 @@ if (aquacrop_status /= 0) then
     bmi_status = BMI_FAILURE
     return
 end if
-
-! ========================================================================
-! FIX: Ensure Management is initialized with valid defaults
-! ========================================================================
-! If no .MAN file was loaded, FertilityStress may be uninitialized.
-! This causes all get/set operations on crop__fertility_stress to fail.
-! Solution: Initialize to 0 (no stress) as a safe default.
-if (GetManagement_FertilityStress() < 0 .or. GetManagement_FertilityStress() > 100) then
-    print *, "  Note: Management not fully initialized, setting default FertilityStress = 0"
-    call SetManagement_FertilityStress(0_int8)
-    
-    ! Also initialize the stress parameters for consistency
-    ! This follows the pattern in run.f90
-    EffectStress_init = GetSimulation_EffectStress()
-    call CropStressParametersSoilFertility( &
-        GetCrop_StressResponse(), &
-        0_int8, &
-        EffectStress_init &
-    )
-    call SetSimulation_EffectStress(EffectStress_init)
-end if
-! ========================================================================
 
 ! Get actual simulation period from AquaCrop
 from_day = GetSimulation_FromDayNr()
@@ -516,11 +489,7 @@ real(c_double), intent(inout) :: dest(:)
 integer :: bmi_status
 
 ! Get actual values from AquaCrop global state
-select case(trim(name))
-case('crop__fertility_stress')
-    ! Get current fertility stress setting (0-100%)
-    ! This is an input variable that affects crop growth
-    dest(1) = real(GetManagement_FertilityStress(), c_double)
+select case(name)
 case('crop__canopy_cover')
     ! Get CURRENT actual canopy cover (CCiActual), not CCini
     ! CCiActual is updated during simulation and represents the actual canopy cover
@@ -579,36 +548,18 @@ class(bmi_aquacrop), intent(inout) :: this
 character(len=*), intent(in) :: name
 real(c_double), intent(in) :: src(:)
 integer :: bmi_status
-integer(int8) :: fertility_value
-type(rep_EffectStress) :: EffectStress_temp
 
 ! Currently only fertility stress can be set as input
-select case(trim(name))
+select case(name)
 case('crop__fertility_stress')
-    ! Set fertility stress (0-100%)
-    ! Convert from double to int8, ensure it's in valid range
-    fertility_value = int(max(0.0d0, min(100.0d0, src(1))), int8)
-    
-    ! Update AquaCrop's internal management state
-    call SetManagement_FertilityStress(fertility_value)
-    
-    ! Recalculate stress parameters based on new fertility value
-    ! This follows the pattern used in global.f90 when loading management files
-    EffectStress_temp = GetSimulation_EffectStress()
-    call CropStressParametersSoilFertility( &
-        GetCrop_StressResponse(), &
-        fertility_value, &
-        EffectStress_temp &
-    )
-    call SetSimulation_EffectStress(EffectStress_temp)
-    
-    bmi_status = BMI_SUCCESS
-    return
+    ! TODO: Implement setting fertility stress
+    ! This would need to call a function to modify AquaCrop's internal state
+    bmi_status = BMI_FAILURE  ! Not yet implemented
 case default
     bmi_status = BMI_FAILURE
-    return
 end select
 
+bmi_status = BMI_FAILURE  ! Not implemented yet
 end function aquacrop_set_double
 
 ! ========================================================================

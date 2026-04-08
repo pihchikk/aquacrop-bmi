@@ -926,6 +926,7 @@ subroutine FinalizeTheProgram()
     open(newunit=fend, file=(GetPathNameOutp() // 'AllDone.OUT'), &
          status='replace', action='write')
     write(fend, '(a)') 'All done'
+    close(fend)  ! *** ADDED: Close the file handle to prevent leaks ***
 end subroutine FinalizeTheProgram
 
 
@@ -993,31 +994,202 @@ subroutine BMI_InitializeAquaCrop(config_file, status)
     integer, intent(out) :: status
     
     integer(int8) :: TheProjectType
-    integer(int8) :: NrRun  ! *** ADDED: Must be int8 for InitializeRunPart1/2 ***
+    integer(int8) :: NrRun
+    character(len=1025) :: base_path, list_path, outp_path, simul_path
+    character(len=1025) :: project_file_name, working_dir, full_path
+    character(len=1025) :: original_dir
+    integer :: i, last_slash, list_pos, path_len, chdir_status
+    logical :: file_exists_check
     
-    ! Initialize status to success
+    ! Initialize status
     status = 0
     
-    ! *** UNCHANGED: Step 1 - Global initialization ***
+    print *, ""
+    print *, "=== BMI_InitializeAquaCrop DEBUG ==="
+    print *, "Input config_file: '", trim(config_file), "'"
+    print *, "Config file length:", len_trim(config_file)
+    
+    ! Get and save current working directory
+    call getcwd(original_dir)
+    print *, "Original working directory: '", trim(original_dir), "'"
+    
+    ! *** Extract directory paths from config_file ***
+    path_len = len_trim(config_file)
+    
+    ! Find last slash
+    last_slash = 0
+    do i = path_len, 1, -1
+        if (config_file(i:i) == '/' .or. config_file(i:i) == '\') then
+            last_slash = i
+            print *, "Found last slash at position:", i
+            exit
+        end if
+    end do
+    
+    if (last_slash > 0) then
+        print *, "Path contains directory separators"
+        
+        ! Check if path contains LIST directory
+        list_pos = index(config_file(1:last_slash), 'LIST')
+        print *, "LIST position in path:", list_pos
+        
+        if (list_pos > 0) then
+            ! Extract base path (everything before LIST/)
+            base_path = config_file(1:list_pos-1)
+            
+            ! Ensure base_path ends with separator
+            if (len_trim(base_path) > 0) then
+                if (base_path(len_trim(base_path):len_trim(base_path)) /= '/' .and. &
+                    base_path(len_trim(base_path):len_trim(base_path)) /= '\') then
+                    base_path = trim(base_path) // '/'
+                end if
+            end if
+        else
+            ! No LIST in path - extract directory part
+            base_path = config_file(1:last_slash)
+        end if
+        
+        ! Extract filename
+        project_file_name = config_file(last_slash+1:path_len)
+    else
+        ! No slash found - relative path without directories
+        print *, "No directory separators found - assuming current directory"
+        
+        ! Check if we're already in the data directory or need to look for bmi_test_data
+        if (index(config_file, 'LIST') > 0) then
+            base_path = ''
+            project_file_name = 'project.PRO'
+        else
+            base_path = '../'
+            project_file_name = trim(config_file)
+        end if
+    end if
+    
+    ! If base_path is empty and we have LIST in the path, check for bmi_test_data
+    if (len_trim(base_path) == 0 .and. index(config_file, 'LIST') > 0) then
+        inquire(file='bmi_test_data/LIST/project.PRO', exist=file_exists_check)
+        if (file_exists_check) then
+            base_path = 'bmi_test_data/'
+            print *, "Found bmi_test_data in current directory"
+        else
+            inquire(file='LIST/project.PRO', exist=file_exists_check)
+            if (file_exists_check) then
+                base_path = ''
+                print *, "Already in base data directory"
+            else
+                base_path = './'
+            end if
+        end if
+    end if
+    
+    ! Construct directory paths (relative to base_path)
+    list_path = 'LIST/'
+    outp_path = 'OUTP/'
+    simul_path = 'SIMUL/'
+    
+    ! Debug output
+    print *, ""
+    print *, "=== Parsed Paths ==="
+    print *, "  Base path:     '", trim(base_path), "'"
+    print *, "  LIST path:     '", trim(list_path), "'"
+    print *, "  OUTP path:     '", trim(outp_path), "'"
+    print *, "  SIMUL path:    '", trim(simul_path), "'"
+    print *, "  Project file:  '", trim(project_file_name), "'"
+    
+    ! Verify file exists
+    if (len_trim(base_path) > 0) then
+        full_path = trim(base_path) // trim(list_path) // trim(project_file_name)
+    else
+        full_path = trim(list_path) // trim(project_file_name)
+    end if
+    print *, "  Full path to check: '", trim(full_path), "'"
+    inquire(file=trim(full_path), exist=file_exists_check)
+    if (file_exists_check) then
+        print *, "  ✅ File exists!"
+    else
+        print *, "  ❌ File NOT found!"
+    end if
+    print *, "==================================="
+    print *, ""
+    
+    ! *** CRITICAL: Change working directory to base_path ***
+    ! This ensures that relative paths in project.PRO (like ../project.CLI) work correctly
+    if (len_trim(base_path) > 0) then
+        print *, "Changing working directory to: '", trim(base_path), "'"
+        chdir_status = chdir(trim(base_path))
+        if (chdir_status /= 0) then
+            print *, "ERROR: Failed to change directory!"
+            status = -1
+            return
+        end if
+        call getcwd(working_dir)
+        print *, "New working directory: '", trim(working_dir), "'"
+        print *, ""
+    end if
+    
+    ! *** Step 1: Global initialization ***
     call InitializeGlobalStrings()
     call InitializeTheProgram()
     
-    ! *** CHANGED: Step 2 - Set project file in global state BEFORE initialization ***
-    call GetProjectType(trim(config_file), TheProjectType)
-    call SetProjectFile(trim(config_file))      ! *** ADDED: Must set project file first ***
-    call SetProjectFilefull(trim(config_file))  ! *** ADDED: Set full path too ***
-    call InitializeSimulation(trim(config_file), TheProjectType)
+    ! *** Step 2: Set directory paths (now relative to new working directory) ***
+    print *, "Setting directory paths in AquaCrop globals..."
+    call SetPathNameProg(trim(''))           ! Empty since we're in the base dir
+    call SetPathNameList(trim(list_path))    ! Just 'LIST/'
+    call SetPathNameOutp(trim(outp_path))    ! Just 'OUTP/'
+    call SetPathNameSimul(trim(simul_path))  ! Just 'SIMUL/'
     
-    ! *** UNCHANGED: Step 3 - Project initialization ***
-    call InitializeProject(1, trim(config_file), TheProjectType)
+    ! Verify paths were set
+    print *, "Verifying paths were set:"
+    print *, "  GetPathNameList() returns: '", trim(GetPathNameList()), "'"
+    print *, "  GetPathNameOutp() returns: '", trim(GetPathNameOutp()), "'"
+    print *, "  GetPathNameSimul() returns: '", trim(GetPathNameSimul()), "'"
+    print *, ""
     
-    ! *** CHANGED: Step 4 - Run initialization with proper int8 type ***
-    NrRun = 1_int8  ! *** ADDED: Use int8 literal ***
+    ! *** Step 3: Set project file (just filename) ***
+    print *, "Setting project file..."
+    call GetProjectType(trim(project_file_name), TheProjectType)
+    print *, "  Project type:", TheProjectType
+    
+    call SetProjectFile(trim(project_file_name))
+    print *, "  SetProjectFile() called with: '", trim(project_file_name), "'"
+    
+    ! Construct full path for SetProjectFilefull (relative to new working dir)
+    full_path = trim(list_path) // trim(project_file_name)
+    call SetProjectFilefull(trim(full_path))
+    print *, "  SetProjectFilefull() called with: '", trim(full_path), "'"
+    print *, ""
+    
+    ! *** Step 4: Initialize simulation ***
+    print *, "Calling InitializeSimulation..."
+    call InitializeSimulation(trim(project_file_name), TheProjectType)
+    print *, "  InitializeSimulation completed"
+    print *, ""
+    
+    ! *** Step 5: Initialize project ***
+    print *, "Calling InitializeProject..."
+    call InitializeProject(1, trim(project_file_name), TheProjectType)
+    print *, "  InitializeProject completed"
+    print *, ""
+    
+    ! *** Step 6: Initialize run ***
+    print *, "Initializing run..."
+    NrRun = 1_int8
     call InitializeRunPart1(NrRun, TheProjectType)
-    call InitializeClimate()
-    call InitializeRunPart2(NrRun, TheProjectType)
+    print *, "  InitializeRunPart1 completed"
     
-    ! *** UNCHANGED: Success ***
+    call InitializeClimate()
+    print *, "  InitializeClimate completed"
+    
+    call InitializeRunPart2(NrRun, TheProjectType)
+    print *, "  InitializeRunPart2 completed"
+    print *, ""
+    
+    print *, "=== BMI_InitializeAquaCrop SUCCESS ==="
+    print *, ""
+    
+    ! NOTE: We intentionally DO NOT change back to original_dir
+    ! AquaCrop needs to stay in the data directory for file operations
+    
     status = 0
     
 end subroutine BMI_InitializeAquaCrop

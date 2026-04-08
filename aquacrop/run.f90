@@ -395,7 +395,15 @@ use ac_global, only:    AdjustSizeCompartments, &
                         setsimulation_swctopsoilconsidered, &
                         settactweedinfested, &
                         setziaqua, &
-                        determinerootzonewc
+                        determinerootzonewc, &
+                        BMI_has_Tmin_override, &
+                        BMI_has_Tmax_override, &
+                        BMI_has_Rain_override, &
+                        BMI_has_ETo_override, &
+                        BMI_Tmin_override_value, &
+                        BMI_Tmax_override_value, &
+                        BMI_Rain_override_value, &
+                        BMI_ETo_override_value
 use ac_inforesults, only:       WriteAssessmentSimulation
 use ac_kinds, only: dp, &
                     int8, &
@@ -6810,8 +6818,24 @@ subroutine AdvanceOneTimeStep(WPi)
     end if
 
     ! 5. Get Irrigation
-    call SetIrrigation(0._dp)
-    call GetIrriParam(TargetTimeVal, TargetDepthVal)
+    ! *** BMI FIX: Check if already set via BMI ***
+    if (GetIrrigation() == 0._dp) then
+        call SetIrrigation(0._dp)
+        call GetIrriParam(TargetTimeVal, TargetDepthVal)
+    else
+        ! Skip file reading, BMI controls irrigation
+        TargetTimeVal = -999
+        TargetDepthVal = -999
+    end if
+    ! *** BMI FIX: Check if already set via BMI ***
+    if (GetIrrigation() == 0._dp) then
+        call SetIrrigation(0._dp)
+        call GetIrriParam(TargetTimeVal, TargetDepthVal)
+    else
+        ! Skip file reading, BMI controls irrigation
+        TargetTimeVal = -999
+        TargetDepthVal = -999
+    end if
 
     ! 6. get virtual time for CC development
     SumGDDadjCC = real(undef_int, kind=dp)
@@ -7343,13 +7367,13 @@ end subroutine AdvanceOneTimeStep
 
 
 subroutine ReadClimateNextDay()
-
     real(dp) :: ETo_tmp
     real(dp) :: tmpRain, Tmin_temp, Tmax_temp
     character(len=:), allocatable :: TempString
 
     ! Read Climate next day, Get GDDays and update SumGDDays
     if (GetDayNri() <= GetSimulation_ToDayNr()) then
+        ! 1. Read from climate files (standard behavior)
         if (GetEToFile() /= '(None)') then
             TempString = fEToSIM_read()
             read(TempString,*) ETo_tmp
@@ -7368,6 +7392,21 @@ subroutine ReadClimateNextDay()
             read(TempString, *) Tmin_temp, Tmax_temp
             call SetTmin(Tmin_temp)
             call SetTmax(Tmax_temp)
+        end if
+        
+        ! 2. Apply BMI overrides if active (Phase 7: Persistent overrides)
+        ! These override file values and persist until explicitly cleared
+        if (BMI_has_Tmin_override) then
+            call SetTmin(BMI_Tmin_override_value)
+        end if
+        if (BMI_has_Tmax_override) then
+            call SetTmax(BMI_Tmax_override_value)
+        end if
+        if (BMI_has_Rain_override) then
+            call SetRain(BMI_Rain_override_value)
+        end if
+        if (BMI_has_ETo_override) then
+            call SetETo(BMI_ETo_override_value)
         end if
     end if
 end subroutine ReadClimateNextDay

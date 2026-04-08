@@ -1,0 +1,24 @@
+[
+  {
+    "day": 50,
+    "stage": "early_growth",
+    "decision": "\ud83d\udea8 SLOW GROWTH - Apply fertilizer + irrigation",
+    "action": "fertilizer_irrigation",
+    "conditions": {
+      "cc": 9.88622629312666,
+      "bio": 0.1288026798770732,
+      "moisture": 220.81408034286963
+    }
+  },
+  {
+    "day": 100,
+    "stage": "mid_season",
+    "decision": "\u2705 ON TRACK - Maintain current management",
+    "action": "maintain",
+    "conditions": {
+      "cc": 67.98358858282944,
+      "bio": 0.27152927734752896,
+      "moisture": 362.6889497127879
+    }
+  }
+]

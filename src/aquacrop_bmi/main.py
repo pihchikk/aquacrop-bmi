@@ -1,8 +1,8 @@
 from anyio.to_thread import run_sync
 from fastapi import FastAPI
 
-from aquacrop_bmi import sync
-from aquacrop_bmi.models import (
+from . import sync
+from .models import (
     CropCalibrationInput,
     CropCalibrationResult,
     FertilityStressCalibrationInput,

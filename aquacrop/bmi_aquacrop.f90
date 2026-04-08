@@ -1,10 +1,42 @@
-module bmiaquacropf
+module aquacropbmi
 
-use ac_kinds, only: dp, int32
+use ac_kinds, only: dp, int32, int8, intEnum  ! Add intEnum to imports
+
 use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetSumWaBal_YieldPart, GetRootZoneWC_Actual, &
-                     GetSimulation_FromDayNr, GetSimulation_ToDayNr
-use ac_run, only: BMI_SimulateOneDay, GetDayNri
+                     GetSimulation_FromDayNr, GetSimulation_ToDayNr, &
+                     SetManagement_FertilityStress, GetManagement_FertilityStress, &
+                     CropStressParametersSoilFertility, GetCrop_StressResponse, &
+                     GetSimulation_EffectStress, SetSimulation_EffectStress, &
+                     rep_EffectStress, rep_sim, &
+                     ! Weather getters/setters for Phase 1
+                     GetRain, SetRain, GetETo, SetETo, &
+                     GetTmin, SetTmin, GetTmax, SetTmax, &
+                     GetIrriMethod, SetIrriMethod, & ! handadded 19:59 11.11.25
+                     GetSimulation, & ! Phase 5: Get simulation struct for DayAnaero
+                     GetRootingDepth, & ! Phase 4: Rooting depth
+                     GetSoilLayer_WaterContent, GetSoil_NrSoilLayers, & ! Phase 3: Soil layers
+                     ! Phase 6: Management inputs
+                     GetManagement_Mulch, SetManagement_Mulch, &
+                     GetManagement_BundHeight, SetManagement_BundHeight, &
+                     GetManagement_WeedRC, SetManagement_WeedRC, &
+                     ! Irrigation getters/setters
+                     GetIrrigation, SetIrrigation, &
+                    GetSumWaBal_Irrigation, SetSumWabal_Irrigation, &
+                     ! BMI persistent weather overrides
+                     BMI_has_Tmin_override, &
+                     BMI_has_Tmax_override, &
+                     BMI_has_Rain_override, &
+                     BMI_has_ETo_override, &
+                     BMI_Tmin_override_value, &
+                     BMI_Tmax_override_value, &
+                     BMI_Rain_override_value, &
+                     BMI_ETo_override_value
+use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
+                  GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
+                  GetSumWaBal_Tact, GetSumWaBal_Eact, GetSumWaBal_BiomassPot, & ! Phase 4
+                  GetPreviousSum_Irrigation, SetPreviousSum_Irrigation, & ! Phase 2
+                  GetCO2i, SetCO2i ! Phase 6: CO2 concentration
 use ac_startunit, only: BMI_InitializeAquaCrop, BMI_FinalizeAquaCrop
 use bmif_2_0
 use, intrinsic :: iso_c_binding, only: c_ptr, c_loc, c_f_pointer, c_double, &
@@ -55,15 +87,22 @@ contains
     procedure :: get_value_float => aquacrop_get_float
     procedure :: get_value_double => aquacrop_get_double
     
-    procedure :: get_value_ptr => aquacrop_get_ptr_double
-    
-    procedure :: get_value_at_indices => aquacrop_get_at_indices_double
+    ! Get value pointer (3 Ãƒâ€˜Ã¢â‚¬Å¾Ãƒâ€˜Ã†â€™ÃƒÂÃ‚Â½ÃƒÂÃ‚ÂºÃƒâ€˜Ã¢â‚¬Â ÃƒÂÃ‚Â¸ÃƒÂÃ‚Â¸ ÃƒÂÃ‚Â²ÃƒÂÃ‚Â¼ÃƒÂÃ‚ÂµÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚Â¾ 1):
+    procedure :: get_value_ptr_int => aquacrop_get_ptr_int
+    procedure :: get_value_ptr_float => aquacrop_get_ptr_float  
+    procedure :: get_value_ptr_double => aquacrop_get_ptr_double
+
+    procedure :: get_value_at_indices_int => aquacrop_get_at_indices_int
+    procedure :: get_value_at_indices_float => aquacrop_get_at_indices_float
+    procedure :: get_value_at_indices_double => aquacrop_get_at_indices_double
     
     procedure :: set_value_int => aquacrop_set_int
     procedure :: set_value_float => aquacrop_set_float
     procedure :: set_value_double => aquacrop_set_double
     
-    procedure :: set_value_at_indices => aquacrop_set_at_indices_double
+    procedure :: set_value_at_indices_int => aquacrop_set_at_indices_int
+    procedure :: set_value_at_indices_float => aquacrop_set_at_indices_float
+    procedure :: set_value_at_indices_double => aquacrop_set_at_indices_double
     
     ! BMI: Grid Information Functions
     procedure :: get_grid_type => aquacrop_grid_type
@@ -83,6 +122,13 @@ contains
     procedure :: get_grid_face_nodes => aquacrop_grid_face_nodes
     procedure :: get_grid_nodes_per_face => aquacrop_grid_nodes_per_face
     
+    ! Generic interfaces for babelizer compatibility
+    generic :: get_value => get_value_int, get_value_float, get_value_double
+    generic :: get_value_ptr => get_value_ptr_int, get_value_ptr_float, get_value_ptr_double
+    generic :: get_value_at_indices => get_value_at_indices_int, get_value_at_indices_float, get_value_at_indices_double
+    generic :: set_value => set_value_int, set_value_float, set_value_double
+    generic :: set_value_at_indices => set_value_at_indices_int, set_value_at_indices_float, set_value_at_indices_double
+
     ! Helper procedures
     procedure :: print_model_info
 end type bmi_aquacrop
@@ -95,20 +141,44 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 1
-integer, parameter :: output_item_count = 4
+integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
+integer, parameter :: output_item_count = 17 ! Phase 3: 5 soil layer moisture outputs
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
-    'crop__fertility_stress' &
+    'crop__fertility_stress               ', &
+    'weather__rainfall_amount             ', &
+    'weather__air_temperature_min         ', &
+    'weather__air_temperature_max         ', &
+    'weather__reference_evapotranspiration', &
+    'management__irrigation_method        ', &
+    'management__irrigation_amount        ', &
+    'atmosphere__co2_concentration        ', &
+    'management__mulch_cover              ', &
+    'management__bund_height              ', &
+    'management__weed_cover               ', &
+    'bmi__clear_weather_overrides         ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     output_items = (/ &
-    'crop__canopy_cover', &
-    'crop__biomass     ', &
-    'crop__yield       ', &
-    'soil__moisture    ' &
+    'crop__canopy_cover           ', &
+    'crop__biomass                ', &
+    'crop__yield                  ', &
+    'soil__moisture               ', &
+    'crop__water_stress           ', &
+    'crop__temperature_stress     ', &
+    'crop__aeration_stress        ', &
+    'crop__salinity_stress        ', &
+    'crop__rooting_depth          ', &
+    'crop__transpiration          ', &
+    'crop__evapotranspiration     ', &
+    'crop__biomass_potential      ', &
+    'soil__moisture_layer_1       ', &
+    'soil__moisture_layer_2       ', &
+    'soil__moisture_layer_3       ', &
+    'soil__moisture_layer_4       ', &
+    'soil__moisture_layer_5       ' &
     /)
 
 contains
@@ -119,17 +189,18 @@ contains
 
 function aquacrop_component_name(this, name) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(out) :: name
+character(len=*), pointer, intent(out) :: name
+character(len=BMI_MAX_COMPONENT_NAME), target, save :: component_name = "AquaCrop"
 integer :: bmi_status
 
-name = "AquaCrop"
+name => component_name
 bmi_status = BMI_SUCCESS
 end function aquacrop_component_name
 
 ! ------------------------------------------------------------------------
 
 function aquacrop_initialize(this, config_file) result(bmi_status)
-class(bmi_aquacrop), intent(inout) :: this
+class(bmi_aquacrop), intent(out) :: this
 character(len=*), intent(in) :: config_file
 integer :: bmi_status
 integer :: aquacrop_status
@@ -263,12 +334,12 @@ end function aquacrop_output_item_count
 ! ------------------------------------------------------------------------
 
 function aquacrop_input_var_names(this, names) result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(*), pointer, intent(out) :: names(:)
-integer :: bmi_status
+    class(bmi_aquacrop), intent(in) :: this
+    character(len=*), pointer, intent(out) :: names(:)
+    integer :: bmi_status
 
-names => input_items
-bmi_status = BMI_SUCCESS
+    names => input_items   ! â† Point to the full array with 11 variables
+    bmi_status = BMI_SUCCESS
 end function aquacrop_input_var_names
 
 ! ------------------------------------------------------------------------
@@ -343,51 +414,102 @@ end function aquacrop_time_units
 ! BMI: Variable Information Functions
 ! ========================================================================
 
-function aquacrop_var_grid(this, var_name, grid_id) result(bmi_status)
+function aquacrop_var_grid(this, name, grid) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(out) :: grid_id
+character(len=*), intent(in) :: name
+integer, intent(out) :: grid
 integer :: bmi_status
 
 ! All variables on scalar grid (grid 0)
-grid_id = 0
+grid = 0
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_grid
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_var_type(this, var_name, var_type) result(bmi_status)
+function aquacrop_var_type(this, name, type) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-character(len=*), intent(out) :: var_type
+character(len=*), intent(in) :: name
+character(len=*), intent(out) :: type
 integer :: bmi_status
 
-! All our variables are double precision
-var_type = "double"
+select case(trim(name))
+case('management__irrigation_method')
+    type = "real*8"  ! â† Change from "integer" to "real*8"
+case default
+    type = "real*8"
+end select
+
 bmi_status = BMI_SUCCESS
-end function aquacrop_var_type
+end function aquacrop_var_type ! HAND FIX 20:15 11.11.25
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_var_units(this, var_name, var_units) result(bmi_status)
+function aquacrop_var_units(this, name, units) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-character(len=*), intent(out) :: var_units
+character(len=*), intent(in) :: name
+character(len=*), intent(out) :: units
 integer :: bmi_status
 
-select case(var_name)
+select case(trim(name))
 case('crop__canopy_cover')
-    var_units = "percent"
+    units = "percent"
 case('crop__biomass')
-    var_units = "tonnes/ha"
+    units = "tonnes/ha"
 case('crop__yield')
-    var_units = "tonnes/ha"
+    units = "tonnes/ha"
 case('soil__moisture')
-    var_units = "mm"
+    units = "mm"
 case('crop__fertility_stress')
-    var_units = "percent"
+    units = "percent"
+case('weather__rainfall_amount')
+    units = "mm/day"
+case('weather__air_temperature_min')
+    units = "degrees_Celsius"
+case('weather__air_temperature_max')
+    units = "degrees_Celsius"
+case('weather__reference_evapotranspiration')
+    units = "mm/day"
+case('management__irrigation_method') ! hand changed 11.11.2025
+    units = "enumeration"
+case('crop__water_stress')
+    units = "days"
+case('crop__temperature_stress')
+    units = "days"
+case('crop__aeration_stress')
+    units = "days"
+case('crop__salinity_stress')
+    units = "days"
+case('crop__rooting_depth')
+    units = "m"
+case('crop__transpiration')
+    units = "mm"
+case('crop__evapotranspiration')
+    units = "mm"
+case('crop__biomass_potential')
+    units = "tonnes/ha"
+case('management__irrigation_amount')
+    units = "mm"
+case('soil__moisture_layer_1')
+    units = "mm"
+case('soil__moisture_layer_2')
+    units = "mm"
+case('soil__moisture_layer_3')
+    units = "mm"
+case('soil__moisture_layer_4')
+    units = "mm"
+case('soil__moisture_layer_5')
+    units = "mm"
+case('atmosphere__co2_concentration')
+    units = "ppm"
+case('management__mulch_cover')
+    units = "%"
+case('management__bund_height')
+    units = "m"
+case('management__weed_cover')
+    units = "%"
 case default
-    var_units = "-"
+    units = "-"
 end select
 
 bmi_status = BMI_SUCCESS
@@ -395,43 +517,48 @@ end function aquacrop_var_units
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_var_itemsize(this, var_name, var_size) result(bmi_status)
+function aquacrop_var_itemsize(this, name, size) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(out) :: var_size
+character(len=*), intent(in) :: name
+integer, intent(out) :: size
 integer :: bmi_status
 
-! Size of double precision
-var_size = c_sizeof(0.0d0)
+select case(trim(name))
+case('management__irrigation_method')
+    size = c_sizeof(0)  ! Integer size (4 bytes)
+case default
+    size = c_sizeof(0.0d0)  ! Double precision (8 bytes)
+end select
+
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_itemsize
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_var_nbytes(this, var_name, var_nbytes) result(bmi_status)
+function aquacrop_var_nbytes(this, name, nbytes) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(out) :: var_nbytes
+character(len=*), intent(in) :: name
+integer, intent(out) :: nbytes
 integer :: bmi_status
 integer :: grid_size, item_size
 
 ! For scalar grid: nbytes = grid_size * item_size
 grid_size = 1
 item_size = c_sizeof(0.0d0)
-var_nbytes = grid_size * item_size
+nbytes = grid_size * item_size
 
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_nbytes
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_var_location(this, var_name, var_loc) result(bmi_status)
+function aquacrop_var_location(this, name, location) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-character(len=*), intent(out) :: var_loc
+character(len=*), intent(in) :: name
+character(len=*), intent(out) :: location
 integer :: bmi_status
 
-var_loc = "node"
+location = "node"
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_location
 
@@ -441,9 +568,9 @@ end function aquacrop_var_location
 
 ! Get value functions (copy data)
 
-function aquacrop_get_int(this, var_name, dest) result(bmi_status)
+function aquacrop_get_int(this, name, dest) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 integer, intent(inout) :: dest(:)
 integer :: bmi_status
 
@@ -453,9 +580,9 @@ end function aquacrop_get_int
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_get_float(this, var_name, dest) result(bmi_status)
+function aquacrop_get_float(this, name, dest) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 real(c_float), intent(inout) :: dest(:)
 integer :: bmi_status
 
@@ -465,14 +592,60 @@ end function aquacrop_get_float
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_get_double(this, var_name, dest) result(bmi_status)
+function aquacrop_get_double(this, name, dest) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 real(c_double), intent(inout) :: dest(:)
 integer :: bmi_status
+type(rep_sim) :: sim_temp  ! Temp variable for GetSimulation result
 
 ! Get actual values from AquaCrop global state
-select case(var_name)
+select case(trim(name))
+case('crop__fertility_stress')
+    ! Get current fertility stress setting (0-100%)
+    ! This is an input variable that affects crop growth
+    dest(1) = real(GetManagement_FertilityStress(), c_double)
+case('weather__rainfall_amount')
+    ! Get current day's rainfall in mm/day
+    dest(1) = real(GetRain(), c_double)
+case('weather__air_temperature_min')
+    ! Get current day's minimum air temperature in degrees Celsius
+    dest(1) = real(GetTmin(), c_double)
+case('weather__air_temperature_max')
+    ! Get current day's maximum air temperature in degrees Celsius
+    dest(1) = real(GetTmax(), c_double)
+case('weather__reference_evapotranspiration')
+    ! Get current day's reference evapotranspiration (ET0) in mm/day
+    dest(1) = real(GetETo(), c_double) ! hand added 20:02 11.11.25
+case('management__irrigation_method')
+    ! Get current irrigation method
+    ! 0=Basin, 1=Border, 2=Drip, 3=Furrow, 4=Sprinkler
+    dest(1) = real(GetIrriMethod(), c_double)
+case('management__irrigation_amount')
+    ! Get cumulative irrigation amount applied
+    ! Phase 2 addition: Dynamic irrigation tracking
+    ! Units: mm (cumulative)
+    dest(1) = real(GetIrrigation(), c_double)  
+case('atmosphere__co2_concentration')
+    ! Get current atmospheric CO2 concentration
+    ! Phase 6 addition: Climate change scenarios
+    ! Units: ppm
+    dest(1) = real(GetCO2i(), c_double)
+case('management__mulch_cover')
+    ! Get soil mulch cover percentage
+    ! Phase 6 addition: Field management
+    ! Units: percent (0-100)
+    dest(1) = real(GetManagement_Mulch(), c_double)
+case('management__bund_height')
+    ! Get water retention bund height
+    ! Phase 6 addition: Field management
+    ! Units: meters
+    dest(1) = real(GetManagement_BundHeight(), c_double)
+case('management__weed_cover')
+    ! Get weed relative cover percentage
+    ! Phase 6 addition: Field management
+    ! Units: percent (0-100)
+    dest(1) = real(GetManagement_WeedRC(), c_double)
 case('crop__canopy_cover')
     ! Get CURRENT actual canopy cover (CCiActual), not CCini
     ! CCiActual is updated during simulation and represents the actual canopy cover
@@ -491,6 +664,84 @@ case('soil__moisture')
     ! Returns actual water content in the active root zone only
     ! (not the full soil profile, only where roots are extracting water)
     dest(1) = real(GetRootZoneWC_Actual(), c_double)
+case('crop__water_stress')
+    ! Get water stress (stomatal + expansion) - cumulative stress from storage and leaf expansion
+    ! Phase 5 addition: Returns stress from water stress on stomata (GetStressTot_Sto)
+    ! Value range: 0-100+ (cumulative days or percentage)
+    dest(1) = real(GetStressTot_Sto(), c_double)
+case('crop__temperature_stress')
+    ! Get temperature stress - cumulative temperature stress days
+    ! Phase 5 addition: Temperature stress factor
+    ! Value range: 0-100+ (cumulative)
+    dest(1) = real(GetStressTot_Temp(), c_double)
+case('crop__aeration_stress')
+    ! Get aeration stress - days under anaerobic conditions
+    ! Phase 5 addition: Aeration/oxygen stress indicator
+    ! Value: number of days with waterlogging
+    sim_temp = GetSimulation()
+    dest(1) = real(sim_temp%DayAnaero, c_double)
+case('crop__salinity_stress')
+    ! Get salinity stress - cumulative salt stress
+    ! Phase 5 addition: Salt stress indicator
+    ! Value range: 0-100+ (cumulative)
+    dest(1) = real(GetStressTot_Salt(), c_double)
+case('crop__rooting_depth')
+    ! Get current rooting depth in meters
+    ! Phase 4 addition: Crop root development indicator
+    ! Value range: 0-3+ (meters)
+    dest(1) = real(GetRootingDepth(), c_double)
+case('crop__transpiration')
+    ! Get cumulative actual crop transpiration
+    ! Phase 4 addition: Water use by crop
+    ! Value: Cumulative mm of water transpired
+    dest(1) = real(GetSumWaBal_Tact(), c_double)
+case('crop__evapotranspiration')
+    ! Get cumulative actual evapotranspiration (E + Tr)
+    ! Phase 4 addition: Total water loss from field
+    ! Value: Cumulative mm (soil evaporation + crop transpiration)
+    dest(1) = real(GetSumWaBal_Eact(), c_double)
+case('crop__biomass_potential')
+    ! Get potential biomass without stress
+    ! Phase 4 addition: Biomass production if no stress
+    ! Value: t/ha
+    dest(1) = real(GetSumWaBal_BiomassPot(), c_double)
+case('soil__moisture_layer_1')
+    ! Get water content in soil layer 1
+    ! Phase 3 addition: Per-layer soil moisture tracking
+    ! Units: mm
+    if (GetSoil_NrSoilLayers() >= 1) then
+        dest(1) = real(GetSoilLayer_WaterContent(1), c_double)
+    else
+        dest(1) = -999.0d0  ! Layer doesn't exist
+    end if
+case('soil__moisture_layer_2')
+    ! Get water content in soil layer 2
+    if (GetSoil_NrSoilLayers() >= 2) then
+        dest(1) = real(GetSoilLayer_WaterContent(2), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_3')
+    ! Get water content in soil layer 3
+    if (GetSoil_NrSoilLayers() >= 3) then
+        dest(1) = real(GetSoilLayer_WaterContent(3), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_4')
+    ! Get water content in soil layer 4
+    if (GetSoil_NrSoilLayers() >= 4) then
+        dest(1) = real(GetSoilLayer_WaterContent(4), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_5')
+    ! Get water content in soil layer 5
+    if (GetSoil_NrSoilLayers() >= 5) then
+        dest(1) = real(GetSoilLayer_WaterContent(5), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
 case default
     bmi_status = BMI_FAILURE
     return
@@ -500,184 +751,169 @@ bmi_status = BMI_SUCCESS
 end function aquacrop_get_double
 
 ! ------------------------------------------------------------------------
-! Get value pointer functions (reference, no copy)
+! Set value functions (copy data in)
 
-function aquacrop_get_ptr_int(this, var_name, dest_ptr) result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-integer, pointer, intent(inout) :: dest_ptr(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not implemented - AquaCrop state not directly accessible
-end function aquacrop_get_ptr_int
-
-! ------------------------------------------------------------------------
-
-function aquacrop_get_ptr_float(this, var_name, dest_ptr) result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-real(c_float), pointer, intent(inout) :: dest_ptr(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not implemented
-end function aquacrop_get_ptr_float
-
-! ------------------------------------------------------------------------
-
-function aquacrop_get_ptr_double(this, var_name, dest_ptr) result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-type(c_ptr), intent(inout) :: dest_ptr
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not implemented - would need to expose AquaCrop global variables
-end function aquacrop_get_ptr_double
-
-! ------------------------------------------------------------------------
-! Get value at indices
-
-function aquacrop_get_at_indices_int(this, var_name, dest, inds) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(inout) :: dest(:)
-integer, intent(in) :: inds(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
-end function aquacrop_get_at_indices_int
-
-! ------------------------------------------------------------------------
-
-function aquacrop_get_at_indices_float(this, var_name, dest, inds) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-real(c_float), intent(inout) :: dest(:)
-integer, intent(in) :: inds(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable
-end function aquacrop_get_at_indices_float
-
-! ------------------------------------------------------------------------
-
-function aquacrop_get_at_indices_double(this, var_name, dest, indices) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(in) :: this
-character(len=*), intent(in) :: var_name
-real(c_double), intent(inout) :: dest(:)
-integer(c_int), intent(in) :: indices(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
-end function aquacrop_get_at_indices_double
-
-! ------------------------------------------------------------------------
-! Set value functions
-
-function aquacrop_set_int(this, var_name, src) result(bmi_status)
+function aquacrop_set_int(this, name, src) result(bmi_status)
 class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 integer, intent(in) :: src(:)
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
-! Integer values not used
+! Integer values not used in AquaCrop BMI
 end function aquacrop_set_int
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_set_float(this, var_name, src) result(bmi_status)
+function aquacrop_set_float(this, name, src) result(bmi_status)
 class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 real(c_float), intent(in) :: src(:)
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
-! We use double precision
+! We use double precision, not float
 end function aquacrop_set_float
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_set_double(this, var_name, src) result(bmi_status)
+function aquacrop_set_double(this, name, src) result(bmi_status)
 class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
+character(len=*), intent(in) :: name
 real(c_double), intent(in) :: src(:)
 integer :: bmi_status
+integer(int8) :: fertility_value
+type(rep_EffectStress) :: EffectStress_temp
 
-! TODO: Set values in AquaCrop state
-select case(var_name)
+! Currently only fertility stress can be set as input
+select case(trim(name))
 case('crop__fertility_stress')
-    ! TODO: Set fertility stress in management
+    ! Set fertility stress (0-100%)
+    ! Convert from double to int8, ensure it's in valid range
+    fertility_value = int(max(0.0d0, min(100.0d0, src(1))), int8)
+    
+    ! Update AquaCrop's internal management state
+    call SetManagement_FertilityStress(fertility_value)
+    
+    ! Recalculate stress parameters based on new fertility value
+    ! This follows the pattern used in global.f90 when loading management files
+    EffectStress_temp = GetSimulation_EffectStress()
+    call CropStressParametersSoilFertility( &
+        GetCrop_StressResponse(), &
+        fertility_value, &
+        EffectStress_temp &
+    )
+    call SetSimulation_EffectStress(EffectStress_temp)
+    
     bmi_status = BMI_SUCCESS
+    return
+case('weather__rainfall_amount')
+    ! Set current day's rainfall in mm/day
+    ! Phase 7: Use persistent override system
+    BMI_Rain_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_Rain_override = .true.
+    call SetRain(BMI_Rain_override_value)
+    bmi_status = BMI_SUCCESS
+    return
+case('weather__air_temperature_min')
+    ! Set current day's minimum air temperature in degrees Celsius
+    ! Phase 7: Use persistent override system
+    BMI_Tmin_override_value = real(src(1), dp)
+    BMI_has_Tmin_override = .true.
+    call SetTmin(BMI_Tmin_override_value)
+    bmi_status = BMI_SUCCESS
+    return
+case('weather__air_temperature_max')
+    ! Set current day's maximum air temperature in degrees Celsius
+    ! Phase 7: Use persistent override system
+    BMI_Tmax_override_value = real(src(1), dp)
+    BMI_has_Tmax_override = .true.
+    call SetTmax(BMI_Tmax_override_value)
+    bmi_status = BMI_SUCCESS
+    return
+case('management__irrigation_method') ! hand added 20:02 11.11.25
+    ! Set irrigation method (0=Basin, 1=Border, 2=Drip, 3=Furrow, 4=Sprinkler)
+    ! Clamp to valid range [0, 4]
+    call SetIrriMethod(int(nint(max(0.0d0, min(4.0d0, src(1)))), kind=int8))
+    bmi_status = BMI_SUCCESS
+    return
+case('weather__reference_evapotranspiration')
+    ! Set current day's reference evapotranspiration (ET0) in mm/day
+    ! Phase 7: Use persistent override system
+    BMI_ETo_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_ETo_override = .true.
+    call SetETo(BMI_ETo_override_value)
+    bmi_status = BMI_SUCCESS
+    return
+case('management__irrigation_amount')
+    ! Set daily irrigation amount in mm/day
+    ! Phase 2 addition: Allows dynamic irrigation scheduling
+    ! *** CRITICAL FIX: Must set both current irrigation AND update sum ***
+    call SetIrrigation(real(max(0.0d0, src(1)), dp))  ! Set TODAY's irrigation
+    ! Also update sum for proper accounting
+    call SetSumWabal_Irrigation(GetSumWaBal_Irrigation() + real(max(0.0d0, src(1)), dp))
+    bmi_status = BMI_SUCCESS
+    return
+case('atmosphere__co2_concentration')
+    ! Set atmospheric CO2 concentration
+    ! Phase 6 addition: Climate change scenarios
+    ! Units: ppm (parts per million)
+    call SetCO2i(real(max(280.0d0, src(1)), dp))  ! Clamp to realistic min
+    bmi_status = BMI_SUCCESS
+    return
+case('management__mulch_cover')
+    ! Set mulch soil cover percentage
+    ! Phase 6 addition: Field management
+    ! Units: percent (0-100)
+    call SetManagement_Mulch(int(max(0.0d0, min(100.0d0, src(1))), int8))
+    bmi_status = BMI_SUCCESS
+    return
+case('management__bund_height')
+    ! Set water retention bund height
+    ! Phase 6 addition: Field management
+    ! Units: meters
+    call SetManagement_BundHeight(real(max(0.0d0, src(1)), dp))
+    bmi_status = BMI_SUCCESS
+    return
+case('management__weed_cover')
+    ! Set weed relative cover percentage
+    ! Phase 6 addition: Field management
+    ! Units: percent (0-100)
+    call SetManagement_WeedRC(int(max(0.0d0, min(100.0d0, src(1))), int8))
+    bmi_status = BMI_SUCCESS
+    return
+case('bmi__clear_weather_overrides')
+    ! Clear all weather overrides, return to file-based values
+    ! Phase 7: Reset all persistent weather overrides
+    ! Any non-zero value will clear all overrides
+    if (src(1) /= 0.0d0) then
+        BMI_has_Tmin_override = .false.
+        BMI_has_Tmax_override = .false.
+        BMI_has_Rain_override = .false.
+        BMI_has_ETo_override = .false.
+    end if
+    bmi_status = BMI_SUCCESS
+    return
 case default
     bmi_status = BMI_FAILURE
+    return
 end select
+
 end function aquacrop_set_double
-
-! ------------------------------------------------------------------------
-! Set value at indices
-
-function aquacrop_set_at_indices_int(this, var_name, inds, src) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(in) :: inds(:)
-integer, intent(in) :: src(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
-end function aquacrop_set_at_indices_int
-
-! ------------------------------------------------------------------------
-
-function aquacrop_set_at_indices_float(this, var_name, inds, src) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
-integer, intent(in) :: inds(:)
-real(c_float), intent(in) :: src(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable
-end function aquacrop_set_at_indices_float
-
-! ------------------------------------------------------------------------
-
-function aquacrop_set_at_indices_double(this, var_name, indices, src) &
-    result(bmi_status)
-class(bmi_aquacrop), intent(inout) :: this
-character(len=*), intent(in) :: var_name
-integer(c_int), intent(in) :: indices(:)
-real(c_double), intent(in) :: src(:)
-integer :: bmi_status
-
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
-end function aquacrop_set_at_indices_double
 
 ! ========================================================================
 ! BMI: Grid Information Functions
 ! ========================================================================
 
-function aquacrop_grid_type(this, grid_id, grid_type) result(bmi_status)
+function aquacrop_grid_type(this, grid, type) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-character(len=*), intent(out) :: grid_type
+integer, intent(in) :: grid
+character(len=*), intent(out) :: type
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
-    grid_type = "scalar"
+    type = "scalar"
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -686,15 +922,15 @@ end function aquacrop_grid_type
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_rank(this, grid_id, grid_rank) result(bmi_status)
+function aquacrop_grid_rank(this, grid, rank) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-integer, intent(out) :: grid_rank
+integer, intent(in) :: grid
+integer, intent(out) :: rank
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
-    grid_rank = 0  ! Scalar
+    rank = 0  ! Scalar
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -703,15 +939,15 @@ end function aquacrop_grid_rank
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_size(this, grid_id, grid_size) result(bmi_status)
+function aquacrop_grid_size(this, grid, size) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-integer, intent(out) :: grid_size
+integer, intent(in) :: grid
+integer, intent(out) :: size
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
-    grid_size = 1  ! Single point
+    size = 1  ! Single point
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -720,10 +956,10 @@ end function aquacrop_grid_size
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_shape(this, grid_id, grid_shape) result(bmi_status)
+function aquacrop_grid_shape(this, grid, shape) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-integer, dimension(:), intent(out) :: grid_shape
+integer, intent(in) :: grid
+integer, dimension(:), intent(out) :: shape
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
@@ -732,10 +968,10 @@ end function aquacrop_grid_shape
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_spacing(this, grid_id, grid_spacing) result(bmi_status)
+function aquacrop_grid_spacing(this, grid, spacing) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-real(c_double), dimension(:), intent(out) :: grid_spacing
+integer, intent(in) :: grid
+real(c_double), dimension(:), intent(out) :: spacing
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
@@ -744,10 +980,10 @@ end function aquacrop_grid_spacing
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_origin(this, grid_id, grid_origin) result(bmi_status)
+function aquacrop_grid_origin(this, grid, origin) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-real(c_double), dimension(:), intent(out) :: grid_origin
+integer, intent(in) :: grid
+real(c_double), dimension(:), intent(out) :: origin
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
@@ -756,16 +992,16 @@ end function aquacrop_grid_origin
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_x(this, grid_id, grid_x) result(bmi_status)
+function aquacrop_grid_x(this, grid, x) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-real(c_double), dimension(:), intent(out) :: grid_x
+integer, intent(in) :: grid
+real(c_double), dimension(:), intent(out) :: x
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
     ! TODO: Get from project longitude
-    grid_x(1) = 0.0d0
+    x(1) = 0.0d0
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -774,16 +1010,16 @@ end function aquacrop_grid_x
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_y(this, grid_id, grid_y) result(bmi_status)
+function aquacrop_grid_y(this, grid, y) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-real(c_double), dimension(:), intent(out) :: grid_y
+integer, intent(in) :: grid
+real(c_double), dimension(:), intent(out) :: y
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
     ! TODO: Get from project latitude
-    grid_y(1) = 0.0d0
+    y(1) = 0.0d0
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -792,16 +1028,16 @@ end function aquacrop_grid_y
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_z(this, grid_id, grid_z) result(bmi_status)
+function aquacrop_grid_z(this, grid, z) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
-real(c_double), dimension(:), intent(out) :: grid_z
+integer, intent(in) :: grid
+real(c_double), dimension(:), intent(out) :: z
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
     ! TODO: Get from project altitude
-    grid_z(1) = 0.0d0
+    z(1) = 0.0d0
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -810,13 +1046,13 @@ end function aquacrop_grid_z
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_node_count(this, grid_id, count) result(bmi_status)
+function aquacrop_grid_node_count(this, grid, count) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, intent(out) :: count
 integer :: bmi_status
 
-select case(grid_id)
+select case(grid)
 case(0)
     count = 1
     bmi_status = BMI_SUCCESS
@@ -827,9 +1063,9 @@ end function aquacrop_grid_node_count
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_edge_count(this, grid_id, count) result(bmi_status)
+function aquacrop_grid_edge_count(this, grid, count) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, intent(out) :: count
 integer :: bmi_status
 
@@ -839,9 +1075,9 @@ end function aquacrop_grid_edge_count
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_face_count(this, grid_id, count) result(bmi_status)
+function aquacrop_grid_face_count(this, grid, count) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, intent(out) :: count
 integer :: bmi_status
 
@@ -851,10 +1087,10 @@ end function aquacrop_grid_face_count
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_edge_nodes(this, grid_id, edge_nodes) &
+function aquacrop_grid_edge_nodes(this, grid, edge_nodes) &
     result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, dimension(:), intent(out) :: edge_nodes
 integer :: bmi_status
 
@@ -864,10 +1100,10 @@ end function aquacrop_grid_edge_nodes
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_face_edges(this, grid_id, face_edges) &
+function aquacrop_grid_face_edges(this, grid, face_edges) &
     result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, dimension(:), intent(out) :: face_edges
 integer :: bmi_status
 
@@ -877,10 +1113,10 @@ end function aquacrop_grid_face_edges
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_face_nodes(this, grid_id, face_nodes) &
+function aquacrop_grid_face_nodes(this, grid, face_nodes) &
     result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, dimension(:), intent(out) :: face_nodes
 integer :: bmi_status
 
@@ -890,16 +1126,142 @@ end function aquacrop_grid_face_nodes
 
 ! ------------------------------------------------------------------------
 
-function aquacrop_grid_nodes_per_face(this, grid_id, nodes_per_face) &
+function aquacrop_grid_nodes_per_face(this, grid, nodes_per_face) &
     result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
-integer, intent(in) :: grid_id
+integer, intent(in) :: grid
 integer, dimension(:), intent(out) :: nodes_per_face
 integer :: bmi_status
 
 bmi_status = BMI_FAILURE
 ! Not applicable for scalar grid
 end function aquacrop_grid_nodes_per_face
+
+! ========================================================================
+! Get value pointer functions - typed versions
+! ========================================================================
+
+function aquacrop_get_ptr_int(this, name, dest_ptr) result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+integer, pointer, intent(inout) :: dest_ptr(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not implemented - AquaCrop state not directly accessible as pointers
+end function aquacrop_get_ptr_int
+
+! ------------------------------------------------------------------------
+
+function aquacrop_get_ptr_float(this, name, dest_ptr) result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+real, pointer, intent(inout) :: dest_ptr(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not implemented
+end function aquacrop_get_ptr_float
+
+! ------------------------------------------------------------------------
+
+function aquacrop_get_ptr_double(this, name, dest_ptr) result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+double precision, pointer, intent(inout) :: dest_ptr(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not implemented - would need to expose AquaCrop global variables
+end function aquacrop_get_ptr_double
+
+! ========================================================================
+! Get value at indices - typed versions
+! ========================================================================
+
+function aquacrop_get_at_indices_int(this, name, dest, inds) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+integer, intent(inout) :: dest(:)
+integer, intent(in) :: inds(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable for scalar grid
+end function aquacrop_get_at_indices_int
+
+! ------------------------------------------------------------------------
+
+function aquacrop_get_at_indices_float(this, name, dest, inds) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+real, intent(inout) :: dest(:)
+integer, intent(in) :: inds(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable
+end function aquacrop_get_at_indices_float
+
+! ------------------------------------------------------------------------
+
+function aquacrop_get_at_indices_double(this, name, dest, inds) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(in) :: this
+character(len=*), intent(in) :: name
+double precision, intent(inout) :: dest(:)
+integer, intent(in) :: inds(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable for scalar grid
+end function aquacrop_get_at_indices_double
+
+! ========================================================================
+! Set value at indices - typed versions
+! ========================================================================
+
+function aquacrop_set_at_indices_int(this, name, inds, src) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(inout) :: this
+character(len=*), intent(in) :: name
+integer, intent(in) :: inds(:)
+integer, intent(in) :: src(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable for scalar grid
+end function aquacrop_set_at_indices_int
+
+! ------------------------------------------------------------------------
+
+function aquacrop_set_at_indices_float(this, name, inds, src) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(inout) :: this
+character(len=*), intent(in) :: name
+integer, intent(in) :: inds(:)
+real, intent(in) :: src(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable
+end function aquacrop_set_at_indices_float
+
+! ------------------------------------------------------------------------
+
+function aquacrop_set_at_indices_double(this, name, inds, src) &
+    result(bmi_status)
+class(bmi_aquacrop), intent(inout) :: this
+character(len=*), intent(in) :: name
+integer, intent(in) :: inds(:)
+double precision, intent(in) :: src(:)
+integer :: bmi_status
+
+bmi_status = BMI_FAILURE
+! Not applicable for scalar grid
+end function aquacrop_set_at_indices_double
 
 ! ========================================================================
 ! Helper Functions
@@ -916,4 +1278,4 @@ print *, "Start time:      ", 0.0d0, " days"
 print *, "End time:        ", this%end_time, " days"
 end subroutine print_model_info
 
-end module bmiaquacropf
+end module aquacropbmi

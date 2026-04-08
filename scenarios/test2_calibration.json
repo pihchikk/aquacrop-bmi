@@ -1,0 +1,240 @@
+[
+  {
+    "crop_params": {
+      "emergence_day": 12,
+      "flowering_day": 80,
+      "flowering_stage_days": 13,
+      "harvest_index": 30,
+      "maturity_day": 112,
+      "maximum_effective_rooting_depth": 1.5,
+      "maximum_rooting_depth_day": 80,
+      "minimum_effective_rooting_depth": 0.3,
+      "plants_number": 4500000,
+      "start_senescence_day": 100
+    },
+    "crop_ref": "Wheat",
+    "gwt_depth": 10,
+    "gwt_ec": 0,
+    "point": {
+      "latitude": 55.54798,
+      "longitude": 37.234828
+    },
+    "sampling_range": 50,
+    "seasons": [
+      {
+        "growing_season_end": "2011-09-15",
+        "growing_season_start": "2011-04-28",
+        "simulation_end": "2011-09-15",
+        "simulation_start": "2011-04-01",
+        "yield": 3.9
+      },
+      {
+        "growing_season_end": "2012-09-15",
+        "growing_season_start": "2012-04-26",
+        "simulation_end": "2012-09-15",
+        "simulation_start": "2012-04-01",
+        "yield": 7
+      },
+      {
+        "growing_season_end": "2013-09-15",
+        "growing_season_start": "2013-05-05",
+        "simulation_end": "2013-09-15",
+        "simulation_start": "2013-04-01",
+        "yield": 10.05
+      },
+      {
+        "growing_season_end": "2014-09-15",
+        "growing_season_start": "2014-04-19",
+        "simulation_end": "2014-09-15",
+        "simulation_start": "2014-04-01",
+        "yield": 10.25
+      },
+      {
+        "growing_season_end": "2015-09-15",
+        "growing_season_start": "2015-05-06",
+        "simulation_end": "2015-09-15",
+        "simulation_start": "2015-04-01",
+        "yield": 10.12
+      },
+      {
+        "growing_season_end": "2016-09-15",
+        "growing_season_start": "2016-04-27",
+        "simulation_end": "2016-09-15",
+        "simulation_start": "2016-04-01",
+        "yield": 10.18
+      },
+      {
+        "growing_season_end": "2017-09-15",
+        "growing_season_start": "2017-04-30",
+        "simulation_end": "2017-09-15",
+        "simulation_start": "2017-04-01",
+        "yield": 10.36
+      },
+      {
+        "growing_season_end": "2018-09-15",
+        "growing_season_start": "2018-05-09",
+        "simulation_end": "2018-09-15",
+        "simulation_start": "2018-04-01",
+        "yield": 7.77
+      },
+      {
+        "growing_season_end": "2019-09-15",
+        "growing_season_start": "2019-05-05",
+        "simulation_end": "2019-09-15",
+        "simulation_start": "2019-04-01",
+        "yield": 7.85
+      },
+      {
+        "growing_season_end": "2020-09-15",
+        "growing_season_start": "2020-04-28",
+        "simulation_end": "2020-09-15",
+        "simulation_start": "2020-04-01",
+        "yield": 10.53
+      }
+    ],
+    "soil": [
+      {
+        "ec": 0,
+        "fc": 45,
+        "gravel": 0,
+        "ksat": 602,
+        "penetrability": 100,
+        "sat": 48,
+        "thickness": 0.23,
+        "wc": 45,
+        "wp": 14
+      },
+      {
+        "ec": 0,
+        "fc": 43,
+        "gravel": 0,
+        "ksat": 312,
+        "penetrability": 100,
+        "sat": 46,
+        "thickness": 0.1,
+        "wc": 43,
+        "wp": 15
+      },
+      {
+        "ec": 0,
+        "fc": 42,
+        "gravel": 0,
+        "ksat": 167,
+        "penetrability": 100,
+        "sat": 45,
+        "thickness": 0.11,
+        "wc": 42,
+        "wp": 16
+      },
+      {
+        "ec": 0,
+        "fc": 34,
+        "gravel": 0,
+        "ksat": 282,
+        "penetrability": 100,
+        "sat": 41,
+        "thickness": 0.39,
+        "wc": 34,
+        "wp": 12
+      },
+      {
+        "ec": 0,
+        "fc": 23,
+        "gravel": 0,
+        "ksat": 1186,
+        "penetrability": 100,
+        "sat": 39,
+        "thickness": 0.97,
+        "wc": 23,
+        "wp": 7
+      }
+    ]
+  },
+  {
+    "crop_file": "Default Wheat, Calendar (Valenzano, 23Nov07)\n7.00           : AquaCrop Version (June 2021)\n0              : File protected\n2              : fruit/grain producing crop\n1              : Crop is sown\n1              : Determination of crop cycle : by calendar days\n1              : Soil water depletion factors (p) are adjusted by ETo\n0.00           : Base temperature (°C) below which crop development does not progress\n26.00          : Upper temperature (°C) above which crop development no longer increases with an increase in temperature\n-9             : Total length of crop cycle in growing degree-days\n0.28           : Soil water depletion factor for canopy expansion (p-exp) - Upper threshold\n0.46           : Soil water depletion factor for canopy expansion (p-exp) - Lower threshold\n4.8            : Shape factor for water stress coefficient for canopy expansion (0.0 = straight line)\n0.53           : Soil water depletion fraction for stomatal control (p - sto) - Upper threshold\n1.6            : Shape factor for water stress coefficient for stomatal control (0.0 = straight line)\n0.98           : Soil water depletion factor for canopy senescence (p - sen) - Upper threshold\n2.8            : Shape factor for water stress coefficient for canopy senescence (0.0 = straight line)\n50             : Sum(ETo) during dormant period to be exceeded before crop is permanently wilted\n0.97           : Soil water depletion factor for pollination (p - pol) - Upper threshold\n7              : Vol% for Anaerobiotic point (* (SAT - [vol%]) at which deficient aeration occurs *)\n50             : Considered soil fertility stress for calibration of stress response (%)\n2.35           : Response of canopy expansion is not considered\n0.79           : Response of maximum canopy cover is not considered\n-0.21          : Response of crop Water Productivity is not considered\n3.52           : Response of decline of canopy cover is not considered\n-9             : dummy - Parameter no Longer required\n5              : Minimum air temperature below which pollination starts to fail (cold stress) (°C)\n35             : Maximum air temperature above which pollination starts to fail (heat stress) (°C)\n14.00          : Minimum growing degrees required for full crop transpiration (°C - day)\n6              : Electrical Conductivity of soil saturation extract at which crop starts to be affected by soil salinity (dS/m)\n20             : Electrical Conductivity of soil saturation extract at which crop can no longer grow (dS/m)\n-9             : Dummy - no longer applicable\n25             : Calibrated distortion (%) of CC due to salinity stress (Range: 0 (none) to +100 (very strong))\n100            : Calibrated response (%) of stomata stress to ECsw (Range: 0 (none) to +200 (extreme))\n1.10           : Crop coefficient when canopy is complete but prior to senescence (KcTr,x)\n0.15           : Decline of crop coefficient (%/day) as a result of ageing, nitrogen deficiency, etc.\n0.30           : Minimum effective rooting depth (m)\n1.50           : Maximum effective rooting depth (m)\n15             : Shape factor describing root zone expansion\n0.05           : Maximum root water extraction (m3water/m3soil.day) in top quarter of root zone\n0.01           : Maximum root water extraction (m3water/m3soil.day) in bottom quarter of root zone\n50             : Effect of canopy cover in reducing soil evaporation in late season stage\n1.50           : Soil surface covered by an individual seedling at 90 % emergence (cm2)\n1.50           : Canopy size of individual plant (re-growth) at 1st day (cm2)\n4500000        : Number of plants per hectare\n0.04627        : Canopy growth coefficient (CGC): Increase in canopy cover (fraction soil cover per day)\n-9             : Maximum decrease of Canopy Growth Coefficient in and between seasons - Not Applicable\n-9             : Number of seasons at which maximum decrease of Canopy Growth Coefficient is reached - Not Applicable\n-9.00          :  Shape factor for decrease Canopy Growth Coefficient - Not Applicable\n0.96           : Maximum canopy cover (CCx) in fraction soil cover\n0.08397        : Canopy decline coefficient (CDC): Decrease in canopy cover (in fraction per day)\n12             : Calendar Days: from sowing to emergence\n80             : Calendar Days: from sowing to maximum rooting depth\n100            : Calendar Days: from sowing to start senescence\n112            : Calendar Days: from sowing to maturity (length of crop cycle)\n80             : Calendar Days: from sowing to flowering\n13             : Length of the flowering stage (days)\n1              : Crop determinancy linked with flowering\n100            : Excess of potential fruits (%)\n30             : Building up of Harvest Index starting at flowering (days)\n20.23          : Water Productivity normalized for ETo and CO2 (WP*) (gram/m2)\n100            : Water Productivity normalized for ETo and CO2 during yield formation (as % WP*)\n50             : Crop performance under elevated atmospheric CO2 concentration (%)\n71             : Reference Harvest Index (HIo) (%)\n5              : Possible increase (%) of HI due to water stress before flowering\n10.00          : Coefficient describing positive impact on HI of restricted vegetative growth during yield formation\n7.00           : Coefficient describing negative impact on HI of stomatal closure during yield formation\n15             : Allowable maximum increase (%) of specified HI\n-9             : GDDays: from sowing to emergence\n-9             : GDDays: from sowing to maximum rooting depth\n-9             : GDDays: from sowing to start senescence\n-9             : GDDays: from sowing to maturity (length of crop cycle)\n-9             : GDDays: from sowing to flowering\n-9             : Length of the flowering stage (growing degree days)\n-9.00          : CGC for GGDays: Increase in canopy cover (in fraction soil cover per growing-degree day)\n-9.00          : CDC for GGDays: Decrease in canopy cover (in fraction per growing-degree day)\n-9             : GDDays: building-up of Harvest Index during yield formation\n90             : dry matter content (%) of fresh yield\n0.00           : Minimum effective rooting depth (m) in first year - required only in case of regrowth\n0              : Crop is transplanted in 1st year - required only in case of regrowth\n0              : Transfer of assimilates from above ground parts to root system is NOT considered\n0              : Number of days at end of season during which assimilates are stored in root system\n0              : Percentage of assimilates transferred to root system at last day of season\n0              : Percentage of stored assimilates transferred to above ground parts in next season\n",
+    "crop_params": {
+      "AquaCrop Version (June 2021)": 7,
+      "File protected": 0,
+      "fruit/grain producing crop": 2,
+      "Crop is sown": 1,
+      "Determination of crop cycle : by calendar days": 1,
+      "Soil water depletion factors (p) are adjusted by ETo": 1,
+      "Base temperature (°C) below which crop development does not progress": 0,
+      "Upper temperature (°C) above which crop development no longer increases with an increase in temperature": 26,
+      "Total length of crop cycle in growing degree-days": -9,
+      "Soil water depletion factor for canopy expansion (p-exp) - Upper threshold": 0.2819225611165166,
+      "Soil water depletion factor for canopy expansion (p-exp) - Lower threshold": 0.46209738343022766,
+      "Shape factor for water stress coefficient for canopy expansion (0.0 = straight line)": 4.760181838646531,
+      "Soil water depletion fraction for stomatal control (p - sto) - Upper threshold": 0.527669713832438,
+      "Shape factor for water stress coefficient for stomatal control (0.0 = straight line)": 1.58956355182454,
+      "Soil water depletion factor for canopy senescence (p - sen) - Upper threshold": 0.9761311720125375,
+      "Shape factor for water stress coefficient for canopy senescence (0.0 = straight line)": 2.829037941992283,
+      "Sum(ETo) during dormant period to be exceeded before crop is permanently wilted": 50,
+      "Soil water depletion factor for pollination (p - pol) - Upper threshold": 0.9716237351763992,
+      "Vol% for Anaerobiotic point (* (SAT - [vol%]) at which deficient aeration occurs *)": 7.166663333773613,
+      "Considered soil fertility stress for calibration of stress response (%)": 50,
+      "Response of canopy expansion is not considered": 2.35,
+      "Response of maximum canopy cover is not considered": 0.79,
+      "Response of crop Water Productivity is not considered": -0.21,
+      "Response of decline of canopy cover is not considered": 3.52,
+      "Minimum air temperature below which pollination starts to fail (cold stress) (°C)": 5,
+      "Maximum air temperature above which pollination starts to fail (heat stress) (°C)": 35,
+      "Minimum growing degrees required for full crop transpiration (°C - day)": 14,
+      "Electrical Conductivity of soil saturation extract at which crop starts to be affected by soil salinity (dS/m)": 6,
+      "Electrical Conductivity of soil saturation extract at which crop can no longer grow (dS/m)": 20,
+      "Calibrated distortion (%) of CC due to salinity stress (Range: 0 (none) to +100 (very strong))": 25,
+      "Calibrated response (%) of stomata stress to ECsw (Range: 0 (none) to +200 (extreme))": 100,
+      "Crop coefficient when canopy is complete but prior to senescence (KcTr,x)": 1.1,
+      "Decline of crop coefficient (%/day) as a result of ageing, nitrogen deficiency, etc.": 0.15,
+      "Minimum effective rooting depth (m)": 0.3,
+      "Maximum effective rooting depth (m)": 1.5,
+      "Shape factor describing root zone expansion": 15,
+      "Maximum root water extraction (m3water/m3soil.day) in top quarter of root zone": 0.048,
+      "Maximum root water extraction (m3water/m3soil.day) in bottom quarter of root zone": 0.012,
+      "Effect of canopy cover in reducing soil evaporation in late season stage": 50,
+      "Soil surface covered by an individual seedling at 90 % emergence (cm2)": 1.5,
+      "Canopy size of individual plant (re-growth) at 1st day (cm2)": 1.5,
+      "Number of plants per hectare": 4500000,
+      "Canopy growth coefficient (CGC): Increase in canopy cover (fraction soil cover per day)": 0.04627157288738526,
+      "Maximum decrease of Canopy Growth Coefficient in and between seasons - Not Applicable": -9,
+      "Number of seasons at which maximum decrease of Canopy Growth Coefficient is reached - Not Applicable": -9,
+      "Shape factor for decrease Canopy Growth Coefficient - Not Applicable": -9,
+      "Maximum canopy cover (CCx) in fraction soil cover": 0.96,
+      "Canopy decline coefficient (CDC): Decrease in canopy cover (in fraction per day)": 0.08397160689420999,
+      "Calendar Days: from sowing to emergence": 12,
+      "Calendar Days: from sowing to maximum rooting depth": 80,
+      "Calendar Days: from sowing to start senescence": 100,
+      "Calendar Days: from sowing to maturity (length of crop cycle)": 112,
+      "Calendar Days: from sowing to flowering": 80,
+      "Length of the flowering stage (days)": 13,
+      "Crop determinancy linked with flowering": 1,
+      "Excess of potential fruits (%)": 100,
+      "Building up of Harvest Index starting at flowering (days)": 30,
+      "Water Productivity normalized for ETo and CO2 (WP*) (gram/m2)": 20.2257661242038,
+      "Water Productivity normalized for ETo and CO2 during yield formation (as % WP*)": 100,
+      "Crop performance under elevated atmospheric CO2 concentration (%)": 50,
+      "Reference Harvest Index (HIo) (%)": 70.88827733695507,
+      "Possible increase (%) of HI due to water stress before flowering": 5,
+      "Coefficient describing positive impact on HI of restricted vegetative growth during yield formation": 10,
+      "Coefficient describing negative impact on HI of stomatal closure during yield formation": 7,
+      "Allowable maximum increase (%) of specified HI": 15,
+      "GDDays: from sowing to emergence": -9,
+      "GDDays: from sowing to maximum rooting depth": -9,
+      "GDDays: from sowing to start senescence": -9,
+      "GDDays: from sowing to maturity (length of crop cycle)": -9,
+      "GDDays: from sowing to flowering": -9,
+      "Length of the flowering stage (growing degree days)": -9,
+      "CGC for GGDays: Increase in canopy cover (in fraction soil cover per growing-degree day)": -9,
+      "CDC for GGDays: Decrease in canopy cover (in fraction per growing-degree day)": -9,
+      "GDDays: building-up of Harvest Index during yield formation": -9,
+      "dry matter content (%) of fresh yield": 90,
+      "Minimum effective rooting depth (m) in first year - required only in case of regrowth": 0,
+      "Crop is transplanted in 1st year - required only in case of regrowth": 0,
+      "Transfer of assimilates from above ground parts to root system is NOT considered": 0,
+      "Number of days at end of season during which assimilates are stored in root system": 0,
+      "Percentage of assimilates transferred to root system at last day of season": 0,
+      "Percentage of stored assimilates transferred to above ground parts in next season": 0
+    },
+    "error": 1.6121000000000003
+  }
+]

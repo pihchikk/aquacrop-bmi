@@ -13,8 +13,8 @@ from pydantic import (
     model_validator,
 )
 
-from aquacrop_bmi.data import CropRef
-from aquacrop_bmi.examples import load_example
+from .data import CropRef
+from .examples import load_example
 
 
 

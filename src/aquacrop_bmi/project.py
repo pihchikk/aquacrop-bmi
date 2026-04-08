@@ -6,17 +6,17 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Self
 
-from aquacrop_bmi.data import DEFAULT_DATA_DIR, specs, templates
-from aquacrop_bmi.soil_texture import SoilLayerParams, curve_number_calc, rew_calc
-from aquacrop_bmi.util import dump_crop_file, elapse_date
-from aquacrop_bmi.wrapper import AQUACROP_EXE
+from .data import DEFAULT_DATA_DIR, specs, templates
+from .soil_texture import SoilLayerParams, curve_number_calc, rew_calc
+from .util import dump_crop_file, elapse_date
+from .wrapper import AQUACROP_EXE
 
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from aquacrop_bmi.models import Season
+    from models import Season
 
 
 
@@ -38,7 +38,7 @@ class AquacropProject:
         self.list = root / 'LIST'
         self.outp = root / 'OUTP'
         self.simul = root / 'SIMUL'
-
+        
         for dir_ in self.list, self.outp, self.simul:
             dir_.mkdir()
 

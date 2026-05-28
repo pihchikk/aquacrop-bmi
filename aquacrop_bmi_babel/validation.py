@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 # ── Fortran limits ──────────────────────────────────────────────────
-MAX_SOIL_LAYERS = 5          # global.f90:21  max_SoilLayers
+MAX_SOIL_LAYERS = 10         # global.f90:21  max_SoilLayers
 MAX_COMPARTMENTS = 12        # global.f90:22  max_No_compartments
 INT8_MIN = -128
 INT8_MAX = 127

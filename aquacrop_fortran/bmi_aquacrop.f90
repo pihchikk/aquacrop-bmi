@@ -142,7 +142,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
 
 ! Exchange items
 integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
-integer, parameter :: output_item_count = 17 ! Phase 3: 5 soil layer moisture outputs
+integer, parameter :: output_item_count = 22 ! Phase 3: 10 soil layer moisture outputs
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
@@ -178,7 +178,12 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     'soil__moisture_layer_2       ', &
     'soil__moisture_layer_3       ', &
     'soil__moisture_layer_4       ', &
-    'soil__moisture_layer_5       ' &
+    'soil__moisture_layer_5       ', &
+    'soil__moisture_layer_6       ', &
+    'soil__moisture_layer_7       ', &
+    'soil__moisture_layer_8       ', &
+    'soil__moisture_layer_9       ', &
+    'soil__moisture_layer_10      ' &
     /)
 
 contains
@@ -504,6 +509,16 @@ case('soil__moisture_layer_4')
     units = "mm"
 case('soil__moisture_layer_5')
     units = "mm"
+case('soil__moisture_layer_6')
+    units = "mm"
+case('soil__moisture_layer_7')
+    units = "mm"
+case('soil__moisture_layer_8')
+    units = "mm"
+case('soil__moisture_layer_9')
+    units = "mm"
+case('soil__moisture_layer_10')
+    units = "mm"
 case('atmosphere__co2_concentration')
     units = "ppm"
 case('management__mulch_cover')
@@ -740,9 +755,38 @@ case('soil__moisture_layer_4')
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_5')
-    ! Get water content in soil layer 5
     if (GetSoil_NrSoilLayers() >= 5) then
         dest(1) = real(GetSoilLayer_WaterContent(5), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_6')
+    if (GetSoil_NrSoilLayers() >= 6) then
+        dest(1) = real(GetSoilLayer_WaterContent(6), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_7')
+    if (GetSoil_NrSoilLayers() >= 7) then
+        dest(1) = real(GetSoilLayer_WaterContent(7), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_8')
+    if (GetSoil_NrSoilLayers() >= 8) then
+        dest(1) = real(GetSoilLayer_WaterContent(8), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_9')
+    if (GetSoil_NrSoilLayers() >= 9) then
+        dest(1) = real(GetSoilLayer_WaterContent(9), c_double)
+    else
+        dest(1) = -999.0d0
+    end if
+case('soil__moisture_layer_10')
+    if (GetSoil_NrSoilLayers() >= 10) then
+        dest(1) = real(GetSoilLayer_WaterContent(10), c_double)
     else
         dest(1) = -999.0d0
     end if

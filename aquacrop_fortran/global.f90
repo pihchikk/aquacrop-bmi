@@ -18,7 +18,7 @@ implicit none
 
 real(dp), parameter :: equiv = 0.64_dp
     !! conversion factor: 1 dS/m = 0.64 g/l
-integer(int32), parameter :: max_SoilLayers = 5
+integer(int32), parameter :: max_SoilLayers = 10
 integer(int32), parameter :: max_No_compartments = 12
 real(dp), parameter :: undef_double = -9.9_dp
     !! value for 'undefined' real(dp) variables

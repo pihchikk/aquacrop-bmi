@@ -12,6 +12,7 @@ import json
 import httpx
 import shutil
 import os
+import uuid
 from pathlib import Path
 from datetime import datetime
 from io import StringIO
@@ -150,6 +151,16 @@ class BmiAquaCrop(Bmi):
         'soil__moisture',
         'crop__water_stress',
         'crop__evapotranspiration',
+        'soil__moisture_layer_1',
+        'soil__moisture_layer_2',
+        'soil__moisture_layer_3',
+        'soil__moisture_layer_4',
+        'soil__moisture_layer_5',
+        'soil__moisture_layer_6',
+        'soil__moisture_layer_7',
+        'soil__moisture_layer_8',
+        'soil__moisture_layer_9',
+        'soil__moisture_layer_10',
     )
     
     def __init__(self, original_cwd: Path | None = None, init_fortran: bool = True) -> None:
@@ -914,10 +925,10 @@ class BmiAquaCrop(Bmi):
 
         output_dir = (original_cwd / "outputs").resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+        unique_id = uuid.uuid4().hex[:8]
+
         scenario_name = getattr(self, '_scenario_type', 'simulation')
-        data_path = output_dir / f"{scenario_name}_{timestamp}"
+        data_path = output_dir / f"{scenario_name}_{unique_id}"
         
         with AquacropProject(with_default=True) as project:
             project.write_climate_files(season.simulation_start, weather_data)

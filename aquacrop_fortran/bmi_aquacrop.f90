@@ -16,6 +16,7 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetSimulation, & ! Phase 5: Get simulation struct for DayAnaero
                      GetRootingDepth, & ! Phase 4: Rooting depth
                      GetSoilLayer_WaterContent, GetSoil_NrSoilLayers, & ! Phase 3: Soil layers
+                     GetSoilLayerTheta, & ! Dynamic compartment-based soil moisture
                      ! Phase 6: Management inputs
                      GetManagement_Mulch, SetManagement_Mulch, &
                      GetManagement_BundHeight, SetManagement_BundHeight, &
@@ -729,64 +730,64 @@ case('soil__moisture_layer_1')
     ! Phase 3 addition: Per-layer soil moisture tracking
     ! Units: mm
     if (GetSoil_NrSoilLayers() >= 1) then
-        dest(1) = real(GetSoilLayer_WaterContent(1), c_double)
+        dest(1) = real(GetSoilLayerTheta(1), c_double)
     else
         dest(1) = -999.0d0  ! Layer doesn't exist
     end if
 case('soil__moisture_layer_2')
     ! Get water content in soil layer 2
     if (GetSoil_NrSoilLayers() >= 2) then
-        dest(1) = real(GetSoilLayer_WaterContent(2), c_double)
+        dest(1) = real(GetSoilLayerTheta(2), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_3')
     ! Get water content in soil layer 3
     if (GetSoil_NrSoilLayers() >= 3) then
-        dest(1) = real(GetSoilLayer_WaterContent(3), c_double)
+        dest(1) = real(GetSoilLayerTheta(3), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_4')
     ! Get water content in soil layer 4
     if (GetSoil_NrSoilLayers() >= 4) then
-        dest(1) = real(GetSoilLayer_WaterContent(4), c_double)
+        dest(1) = real(GetSoilLayerTheta(4), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_5')
     if (GetSoil_NrSoilLayers() >= 5) then
-        dest(1) = real(GetSoilLayer_WaterContent(5), c_double)
+        dest(1) = real(GetSoilLayerTheta(5), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_6')
     if (GetSoil_NrSoilLayers() >= 6) then
-        dest(1) = real(GetSoilLayer_WaterContent(6), c_double)
+        dest(1) = real(GetSoilLayerTheta(6), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_7')
     if (GetSoil_NrSoilLayers() >= 7) then
-        dest(1) = real(GetSoilLayer_WaterContent(7), c_double)
+        dest(1) = real(GetSoilLayerTheta(7), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_8')
     if (GetSoil_NrSoilLayers() >= 8) then
-        dest(1) = real(GetSoilLayer_WaterContent(8), c_double)
+        dest(1) = real(GetSoilLayerTheta(8), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_9')
     if (GetSoil_NrSoilLayers() >= 9) then
-        dest(1) = real(GetSoilLayer_WaterContent(9), c_double)
+        dest(1) = real(GetSoilLayerTheta(9), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_10')
     if (GetSoil_NrSoilLayers() >= 10) then
-        dest(1) = real(GetSoilLayer_WaterContent(10), c_double)
+        dest(1) = real(GetSoilLayerTheta(10), c_double)
     else
         dest(1) = -999.0d0
     end if

@@ -16247,4 +16247,42 @@ subroutine SetPart2Eval(Part2Eval_in)
 end subroutine SetPart2Eval
 
 
+real(dp) function GetSoilLayerTheta(layer_index)
+    integer(int32), intent(in) :: layer_index
+    integer(int32) :: i, compi
+    real(dp) :: cum_depth, layer_top, layer_bot, comp_top, comp_bot
+    real(dp) :: overlap, total_thickness, weighted_sum
+
+    layer_top = 0.0_dp
+    do i = 1, layer_index - 1
+        layer_top = layer_top + GetSoilLayer_Thickness(i)
+    end do
+    layer_bot = layer_top + GetSoilLayer_Thickness(layer_index)
+
+    weighted_sum = 0.0_dp
+    total_thickness = 0.0_dp
+    cum_depth = 0.0_dp
+
+    do compi = 1, GetNrCompartments()
+        comp_top = cum_depth
+        comp_bot = cum_depth + GetCompartment_Thickness(compi)
+
+        overlap = max(0.0_dp, min(comp_bot, layer_bot) - max(comp_top, layer_top))
+        if (overlap > 0.0_dp) then
+            weighted_sum = weighted_sum + GetCompartment_theta(compi) * overlap
+            total_thickness = total_thickness + overlap
+        end if
+
+        cum_depth = comp_bot
+        if (cum_depth >= layer_bot) exit
+    end do
+
+    if (total_thickness > 0.0_dp) then
+        GetSoilLayerTheta = weighted_sum / total_thickness
+    else
+        GetSoilLayerTheta = 0.0_dp
+    end if
+end function GetSoilLayerTheta
+
+
 end module ac_global

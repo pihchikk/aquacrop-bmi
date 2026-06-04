@@ -1,11 +1,11 @@
 {
-  "$comment": "AquaCrop BMI descriptor with brief human comments via $comment keys.",
+  "$comment": "AquaCrop BMI descriptor",
 
   "model_identification": {
     "$comment": "What the model is; short model metadata.",
     "full_name": "AquaCrop-BMI",
     "short_name": "AquaCrop",
-    "authors": ["Ben Pihchikk pihchikk@esoil.ru"],
+    "authors": ["Pihchikk"],
     "version": "0.2.13",
     "last_update": "2026-06-03",
     "model_type": [

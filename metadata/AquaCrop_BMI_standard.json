@@ -1,0 +1,809 @@
+{
+  "$comment": "AquaCrop BMI descriptor with brief human comments via $comment keys.",
+
+  "model_identification": {
+    "$comment": "What the model is; short model metadata.",
+    "full_name": "AquaCrop-BMI",
+    "short_name": "AquaCrop",
+    "authors": ["Ben Pihchikk pihchikk@esoil.ru"],
+    "version": "0.2.13",
+    "last_update": "2026-06-03",
+    "model_type": [
+      "deterministic",
+      "process-based",
+      "point-scale",
+      "simulation",
+      "dynamic"
+    ],
+    "description": "BMI wrapper for FAO AquaCrop crop water productivity model. Simulates daily crop growth, water balance, and yield response to water and environmental stress with full Basic Model Interface 2.0 compliance."
+  },
+
+  "policy": {
+    "$comment": "Unit system, standard-name catalog, nodata and calendar conventions.",
+    "units": "UDUNITS",
+    "standard_names": "CSDMS",
+    "nodata": { "float": -999.0, "int": -999 },
+    "conventions": { "calendar": "proleptic_gregorian", "time_utc": true }
+  },
+
+  "bmi": {
+    "$comment": "BMI metadata so generic runners/couplers can initialize and query.",
+    "component_name": "AquaCrop",
+    "model_class": "AquaCrop",
+    "grid": { "type": "scalar", "rank": 0 },
+    "input_vars": [
+      "weather__rainfall_amount",
+      "weather__air_temperature_max",
+      "weather__air_temperature_min",
+      "weather__reference_evapotranspiration",
+      "management__irrigation_amount",
+      "management__irrigation_method",
+      "management__mulch_cover",
+      "management__bund_height",
+      "management__weed_cover",
+      "management__surface_storage",
+      "atmosphere__co2_concentration",
+      "crop__fertility_stress"
+    ],
+    "output_vars": [
+      "crop__canopy_cover",
+      "crop__biomass",
+      "crop__biomass_potential",
+      "crop__yield",
+      "crop__rooting_depth",
+      "crop__transpiration",
+      "crop__evapotranspiration",
+      "crop__water_stress",
+      "crop__temperature_stress",
+      "crop__aeration_stress",
+      "crop__salinity_stress",
+      "soil__moisture",
+      "soil__moisture_layer_1",
+      "soil__moisture_layer_2",
+      "soil__moisture_layer_3",
+      "soil__moisture_layer_4",
+      "soil__moisture_layer_5",
+      "soil__moisture_layer_6",
+      "soil__moisture_layer_7",
+      "soil__moisture_layer_8",
+      "soil__moisture_layer_9",
+      "soil__moisture_layer_10"
+    ],
+    "time": { "start_time": 0.0, "end_time": "config-dependent", "time_step": 1.0, "time_units": "d" }
+  },
+
+  "model_access": {
+    "$comment": "Repo layout + quickstart for CLI/BMI consumption.",
+    "repository_structure": {
+      "$comment": "Name the important entry points so external tools can find them.",
+      "root": [
+        "aquacrop_bmi_babel/bmi.py",
+        "aquacrop_bmi_babel/bmi_aquacrop.py",
+        "aquacrop_bmi_babel/project.py",
+        "aquacrop_bmi_babel/models.py",
+        "aquacrop_bmi_babel/templates.py",
+        "aquacrop_bmi_babel/validation.py",
+        "aquacrop_bmi_babel/util.py",
+        "aquacrop_fortran/global.f90",
+        "aquacrop_fortran/bmi_aquacrop.f90",
+        "meson.build",
+        "pyproject.toml"
+      ],
+      "fortran_core": "aquacrop_fortran/*.f90, aquacrop_fortran/*.F90",
+      "python_wrapper": "aquacrop_bmi_babel/*.py",
+      "crop_defaults": "aquacrop_bmi_babel/data_modules/crops/*.CRO"
+    },
+    "repository_link": "https://github.com/pihchikk/aquacrop-bmi",
+    "pypi_link": "https://pypi.org/project/aquacrop-bmi-babel/",
+    "cli_usage": {
+      "$comment": "Ready-to-copy install and minimal run examples.",
+      "installation": [
+        "pip install aquacrop-bmi-babel",
+        "# or from source:",
+        "git clone https://github.com/pihchikk/aquacrop-bmi.git",
+        "cd aquacrop-bmi",
+        "pip install -e . --no-build-isolation"
+      ],
+      "examples": [
+        "from aquacrop_bmi_babel import AquaCrop",
+        "model = AquaCrop()",
+        "model.initialize_from_dict(config)",
+        "while model.get_current_time() < model.get_end_time(): model.update()",
+        "outputs = model.get_all_outputs()",
+        "model.finalize()"
+      ],
+      "bmi_snippet": "from aquacrop_bmi_babel import AquaCrop; m=AquaCrop(); m.initialize_from_dict(cfg); m.update(); out=m.get_all_outputs()"
+    }
+  },
+
+  "runtime_environment": {
+    "$comment": "What the runtime expects: OS, language, deps, external tools, hardware.",
+    "operating_system": ["Linux", "Windows"],
+    "language": "Python >=3.11, Fortran (gfortran)",
+    "dependencies": [
+      "numpy>=1.24,<2.0",
+      "bmipy>=2.0",
+      "pydantic>=2.0",
+      "pydantic-settings>=2.0",
+      "httpx>=0.27",
+      "pyyaml>=5.0",
+      "scipy>=1.9",
+      "salib>=1.4",
+      "agro-met-equations-dynalogic>=2.0",
+      "soiltexture>=1.0",
+      "pyarrow>=20.0"
+    ],
+    "build_dependencies": [
+      "meson-python",
+      "gfortran",
+      "bmi-fortran (CSDMS)"
+    ],
+    "external_tools": ["NASA POWER API (automatic weather retrieval)", "Open Elevation API (optional, for altitude)"],
+    "hardware_requirements": { "RAM": "~50 MB per model instance", "CPU": "any modern CPU" }
+  },
+
+  "execution_parameters": {
+    "$comment": "Scenarios, modes, logging, time and space semantics, and unit policy for runtime.",
+    "scenarios": [
+      { "name": "simulation", "description": "Standard daily crop simulation with given soil, weather, and crop parameters." },
+      { "name": "calibration", "description": "Automated calibration of crop parameters against observed yield data." },
+      { "name": "fertility_stress_calibration", "description": "Calibration of fertility stress parameter per season." }
+    ],
+    "config_file_type": "JSON",
+    "checkpoints": false,
+    "logging": { "format": "text", "level": "INFO" },
+    "time": {
+      "$comment": "Model runs at daily timestep; simulation period defined in config.",
+      "time_step": 1.0,
+      "time_units": "d",
+      "simulation_period": "User-defined via simulation_start / simulation_end (typically one growing season, 100-200 days)"
+    },
+    "space": {
+      "$comment": "AquaCrop is a point-scale (1D column) model. Spatial simulations require running multiple instances.",
+      "dimensionality": "1D (vertical soil column)",
+      "cell_size": "point-scale (not spatially distributed)",
+      "max_soil_layers": 10,
+      "max_compartments": 12,
+      "compartment_thickness": "0.10 m"
+    },
+    "units": {
+      "$comment": "Default runtime unit choice (BMI will expose these labels).",
+      "crop__yield": "t ha-1",
+      "crop__biomass": "t ha-1",
+      "crop__canopy_cover": "%",
+      "crop__rooting_depth": "m",
+      "crop__transpiration": "mm",
+      "crop__evapotranspiration": "mm",
+      "crop__water_stress": "1",
+      "crop__temperature_stress": "1",
+      "crop__aeration_stress": "1",
+      "crop__salinity_stress": "1",
+      "soil__moisture": "1",
+      "soil__moisture_layer_N": "m3 m-3"
+    },
+    "parallel_execution": {
+      "$comment": "Fortran global state prevents multi-instance in one process. Use multiprocessing.",
+      "thread_safe": false,
+      "process_safe": true,
+      "recommended": "ProcessPoolExecutor with UUID output directories (v0.2.11+)"
+    }
+  },
+
+  "grids": [
+    {
+      "$comment": "AquaCrop is point-scale: scalar grid for crop outputs, 1D for soil profile.",
+      "id": 0,
+      "type": "scalar",
+      "rank": 0,
+      "description": "Single point for crop state variables (yield, biomass, canopy, stresses)"
+    },
+    {
+      "id": 1,
+      "type": "uniform_rectilinear",
+      "rank": 1,
+      "shape": ["${n_soil_layers}"],
+      "spacing": ["${layer_thickness_m}"],
+      "origin": ["0.0"],
+      "description": "1D vertical soil profile for per-layer moisture output"
+    }
+  ],
+
+  "variables": {
+    "$comment": "BMI variables with standard names, units, and metadata.",
+    "crop__yield": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "t ha-1",
+      "standard_name": "crop__yield",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Dry crop yield", "valid_range": [0.0, 30.0] }
+    },
+    "crop__biomass": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "t ha-1",
+      "standard_name": "crop__biomass",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Above-ground dry biomass", "valid_range": [0.0, 50.0] }
+    },
+    "crop__biomass_potential": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "t ha-1",
+      "standard_name": "crop__biomass_potential",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Potential biomass without stress" }
+    },
+    "crop__canopy_cover": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "%",
+      "standard_name": "crop__canopy_cover",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Green canopy cover", "valid_range": [0.0, 100.0] }
+    },
+    "crop__rooting_depth": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "m",
+      "standard_name": "crop__rooting_depth",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Effective rooting depth" }
+    },
+    "crop__transpiration": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "crop__transpiration",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Daily crop transpiration" }
+    },
+    "crop__evapotranspiration": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "crop__evapotranspiration",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Daily evapotranspiration (soil evap + crop transp)" }
+    },
+    "crop__water_stress": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "crop__water_stress",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Cumulative water stress coefficient" }
+    },
+    "crop__temperature_stress": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "crop__temperature_stress",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Cumulative temperature stress coefficient" }
+    },
+    "crop__aeration_stress": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "crop__aeration_stress",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Aeration stress (waterlogging)" }
+    },
+    "crop__salinity_stress": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "crop__salinity_stress",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Salinity stress" }
+    },
+    "soil__moisture": {
+      "intent": "out",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "soil__moisture",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Average root zone soil moisture" }
+    },
+    "soil__moisture_layer_N": {
+      "$comment": "N = 1..10. Dynamic water content aggregated from Fortran compartments overlapping each soil layer.",
+      "intent": "out",
+      "grid": 1,
+      "location": "node",
+      "dtype": "float64",
+      "units": "m3 m-3",
+      "standard_name": "soil_water__volume_fraction",
+      "time_dependence": "dynamic",
+      "attributes": {
+        "long_name": "Volumetric soil water content for layer N",
+        "computation": "Weighted average of compartment theta values overlapping with soil layer depth range",
+        "valid_range": [0.0, 1.0],
+        "nodata_value": -999.0,
+        "nodata_meaning": "Layer index exceeds number of configured soil layers"
+      }
+    },
+    "weather__rainfall_amount": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "atmosphere_water__rainfall_volume_flux",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Daily rainfall", "source": "NASA POWER API (automatic) or user override" }
+    },
+    "weather__air_temperature_max": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "degC",
+      "standard_name": "atmosphere__air_temperature_max",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Maximum daily air temperature" }
+    },
+    "weather__air_temperature_min": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "degC",
+      "standard_name": "atmosphere__air_temperature_min",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Minimum daily air temperature" }
+    },
+    "weather__reference_evapotranspiration": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "land_surface_water__reference_evapotranspiration_volume_flux",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Daily reference evapotranspiration (ETo)" }
+    },
+    "management__irrigation_amount": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "irrigation__amount",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Daily irrigation depth" }
+    },
+    "management__irrigation_method": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "1",
+      "standard_name": "irrigation__method_code",
+      "time_dependence": "static",
+      "attributes": { "long_name": "Irrigation method code", "codes": "AquaCrop internal codes" }
+    },
+    "management__mulch_cover": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "%",
+      "standard_name": "land_surface__mulch_cover_fraction",
+      "time_dependence": "static",
+      "attributes": { "long_name": "Soil mulch cover percentage" }
+    },
+    "management__bund_height": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "m",
+      "standard_name": "land_surface__bund_height",
+      "time_dependence": "static",
+      "attributes": { "long_name": "Height of soil bunds around field" }
+    },
+    "management__weed_cover": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "%",
+      "standard_name": "land_surface__weed_cover_fraction",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Weed cover as percentage of canopy" }
+    },
+    "management__surface_storage": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "mm",
+      "standard_name": "land_surface_water__storage_depth",
+      "time_dependence": "dynamic",
+      "attributes": { "long_name": "Surface water storage depth" }
+    },
+    "atmosphere__co2_concentration": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "ppm",
+      "standard_name": "atmosphere__co2_concentration",
+      "time_dependence": "static",
+      "attributes": { "long_name": "Atmospheric CO2 concentration", "default": 421.0 }
+    },
+    "crop__fertility_stress": {
+      "intent": "in",
+      "grid": 0,
+      "location": "node",
+      "dtype": "float64",
+      "units": "%",
+      "standard_name": "crop__fertility_stress_fraction",
+      "time_dependence": "static",
+      "attributes": { "long_name": "Soil fertility stress (0=ideal, 100=maximum stress)", "valid_range": [0, 100] }
+    }
+  },
+
+  "input_parameters": {
+    "$comment": "Configuration inputs: soil profile, crop, location, season.",
+    "items": [
+      {
+        "name": "point.latitude",
+        "description": "Site latitude",
+        "units": "degrees_north",
+        "data_type": "float64",
+        "required": true,
+        "standard_name": "latitude"
+      },
+      {
+        "name": "point.longitude",
+        "description": "Site longitude",
+        "units": "degrees_east",
+        "data_type": "float64",
+        "required": true,
+        "standard_name": "longitude"
+      },
+      {
+        "name": "point.altitude",
+        "description": "Site altitude (if omitted, fetched via elevation API)",
+        "units": "m",
+        "data_type": "float64",
+        "required": false,
+        "standard_name": "land_surface__elevation"
+      },
+      {
+        "name": "gwt_depth",
+        "description": "Groundwater table depth below surface",
+        "units": "m",
+        "data_type": "float64",
+        "required": true,
+        "standard_name": "water_table__depth"
+      },
+      {
+        "name": "gwt_ec",
+        "description": "Groundwater electrical conductivity",
+        "units": "dS m-1",
+        "data_type": "float64",
+        "required": true,
+        "standard_name": "water_table__electrical_conductivity"
+      },
+      {
+        "name": "crop_file",
+        "description": "Crop type reference: MaizeGDD, WheatGDD, BarleyGDD, PotatoGDD, SoybeanGDD, CanolaGDD, SugarbeetGDD, SunflowerGDD, TomatoGDD, OatGDD",
+        "units": "1",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "crop__type_identifier"
+      },
+      {
+        "name": "fertility_stress",
+        "description": "Soil fertility stress level (calibration parameter)",
+        "units": "%",
+        "data_type": "int",
+        "required": true,
+        "valid_range": [0, 100],
+        "standard_name": "crop__fertility_stress_fraction"
+      },
+      {
+        "name": "soils[].thickness",
+        "description": "Soil layer thickness",
+        "units": "m",
+        "data_type": "float64",
+        "required": true,
+        "valid_range": [0.01, 10.0],
+        "standard_name": "soil_layer__thickness",
+        "notes": "1-10 layers. Total profile depth should accommodate crop root_max (e.g. 2.0 m for maize)."
+      },
+      {
+        "name": "soils[].sat",
+        "description": "Saturated water content (THS from euptfv2)",
+        "units": "vol%",
+        "data_type": "float64",
+        "required": true,
+        "valid_range": [20.0, 80.0],
+        "standard_name": "soil_water__saturated_volume_fraction",
+        "source": "euptfv2 THS × 100 (cm3/cm3 → vol%)"
+      },
+      {
+        "name": "soils[].fc",
+        "description": "Field capacity at -330 cm matric head (FC from euptfv2)",
+        "units": "vol%",
+        "data_type": "float64",
+        "required": true,
+        "valid_range": [5.0, 60.0],
+        "standard_name": "soil_water__field_capacity_volume_fraction",
+        "source": "euptfv2 FC × 100 (cm3/cm3 → vol%)"
+      },
+      {
+        "name": "soils[].wp",
+        "description": "Wilting point at -15000 cm matric head (WP from euptfv2)",
+        "units": "vol%",
+        "data_type": "float64",
+        "required": true,
+        "valid_range": [1.0, 40.0],
+        "standard_name": "soil_water__wilting_point_volume_fraction",
+        "source": "euptfv2 WP × 100 (cm3/cm3 → vol%)"
+      },
+      {
+        "name": "soils[].ksat",
+        "description": "Saturated hydraulic conductivity (KS from euptfv2)",
+        "units": "mm d-1",
+        "data_type": "float64",
+        "required": true,
+        "valid_range": [1.0, 15000.0],
+        "standard_name": "soil_water__saturated_hydraulic_conductivity",
+        "source": "euptfv2 KS × 10 (cm/d → mm/d)"
+      },
+      {
+        "name": "soils[].wc",
+        "description": "Initial water content (typically set to fc)",
+        "units": "vol%",
+        "data_type": "float64",
+        "required": true,
+        "standard_name": "soil_water__initial_volume_fraction"
+      },
+      {
+        "name": "soils[].penetrability",
+        "description": "Root penetrability of soil layer",
+        "units": "%",
+        "data_type": "float64",
+        "required": false,
+        "default": 100,
+        "valid_range": [0, 100],
+        "standard_name": "soil__root_penetrability_fraction"
+      },
+      {
+        "name": "soils[].gravel",
+        "description": "Gravel content of soil layer",
+        "units": "%",
+        "data_type": "float64",
+        "required": false,
+        "default": 0,
+        "valid_range": [0, 100],
+        "standard_name": "soil__gravel_volume_fraction"
+      },
+      {
+        "name": "soils[].ec",
+        "description": "Soil electrical conductivity (salinity)",
+        "units": "dS m-1",
+        "data_type": "float64",
+        "required": false,
+        "default": 0,
+        "standard_name": "soil_water__electrical_conductivity"
+      },
+      {
+        "name": "seasons[].planting_date",
+        "description": "Planting/sowing date",
+        "units": "ISO 8601 date",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "crop__planting_date"
+      },
+      {
+        "name": "seasons[].simulation_start",
+        "description": "Start of simulation period (before or at planting)",
+        "units": "ISO 8601 date",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "model__simulation_start_date"
+      },
+      {
+        "name": "seasons[].simulation_end",
+        "description": "End of simulation period (after harvest)",
+        "units": "ISO 8601 date",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "model__simulation_end_date"
+      },
+      {
+        "name": "seasons[].growing_season_start",
+        "description": "Start of growing season window",
+        "units": "ISO 8601 date",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "crop__growing_season_start_date"
+      },
+      {
+        "name": "seasons[].growing_season_end",
+        "description": "End of growing season window",
+        "units": "ISO 8601 date",
+        "data_type": "string",
+        "required": true,
+        "standard_name": "crop__growing_season_end_date"
+      }
+    ]
+  },
+
+  "output_parameters": {
+    "$comment": "What arrays/values the model provides via BMI get_value().",
+    "items": [
+      { "name": "crop__yield", "description": "Dry crop yield", "units": "t ha-1", "data_type": "float64", "standard_name": "crop__yield" },
+      { "name": "crop__biomass", "description": "Above-ground dry biomass", "units": "t ha-1", "data_type": "float64", "standard_name": "crop__biomass" },
+      { "name": "crop__biomass_potential", "description": "Potential biomass without stress", "units": "t ha-1", "data_type": "float64", "standard_name": "crop__biomass_potential" },
+      { "name": "crop__canopy_cover", "description": "Green canopy cover", "units": "%", "data_type": "float64", "standard_name": "crop__canopy_cover" },
+      { "name": "crop__rooting_depth", "description": "Effective rooting depth", "units": "m", "data_type": "float64", "standard_name": "crop__rooting_depth" },
+      { "name": "crop__transpiration", "description": "Daily crop transpiration", "units": "mm", "data_type": "float64", "standard_name": "crop__transpiration" },
+      { "name": "crop__evapotranspiration", "description": "Daily evapotranspiration", "units": "mm", "data_type": "float64", "standard_name": "crop__evapotranspiration" },
+      { "name": "crop__water_stress", "description": "Cumulative water stress", "units": "1", "data_type": "float64", "standard_name": "crop__water_stress" },
+      { "name": "crop__temperature_stress", "description": "Cumulative temperature stress", "units": "1", "data_type": "float64", "standard_name": "crop__temperature_stress" },
+      { "name": "crop__aeration_stress", "description": "Aeration stress", "units": "1", "data_type": "float64", "standard_name": "crop__aeration_stress" },
+      { "name": "crop__salinity_stress", "description": "Salinity stress", "units": "1", "data_type": "float64", "standard_name": "crop__salinity_stress" },
+      { "name": "soil__moisture", "description": "Average root zone moisture", "units": "1", "data_type": "float64", "standard_name": "soil__moisture" },
+      { "name": "soil__moisture_layer_1..10", "description": "Per-layer volumetric water content (dynamic, from compartments)", "units": "m3 m-3", "data_type": "float64", "standard_name": "soil_water__volume_fraction" }
+    ]
+  },
+
+  "time_control": {
+    "$comment": "Daily stepping within a user-defined season window.",
+    "start": "config: seasons[0].simulation_start",
+    "end": "config: seasons[0].simulation_end",
+    "dt": { "type": "fixed", "value": 86400.0, "units": "s" },
+    "spinup": { "enabled": false, "period": 0, "units": "s" },
+    "restart": { "read": null, "write_interval_steps": null },
+    "notes": "Time moves forward only. To restart, create a new model instance."
+  },
+
+  "conditions": {
+    "$comment": "IC/BC/forcing hooks.",
+    "initial_conditions": [
+      { "variable": "soils[].wc", "description": "Initial soil water content per layer (vol%)", "default": "= fc" }
+    ],
+    "boundary_conditions": [
+      { "variable": "gwt_depth", "description": "Groundwater depth (m)", "type": "constant" },
+      { "variable": "gwt_ec", "description": "Groundwater EC (dS/m)", "type": "constant" }
+    ],
+    "forcing": [
+      { "variable": "weather__rainfall_amount", "source": "NASA POWER API or user override", "frequency": "daily" },
+      { "variable": "weather__air_temperature_max", "source": "NASA POWER API or user override", "frequency": "daily" },
+      { "variable": "weather__air_temperature_min", "source": "NASA POWER API or user override", "frequency": "daily" },
+      { "variable": "weather__reference_evapotranspiration", "source": "NASA POWER API or user override", "frequency": "daily" }
+    ]
+  },
+
+  "numerics": {
+    "$comment": "AquaCrop uses a simplified water balance (not Richards equation).",
+    "schemes": { "water_balance": "tipping_bucket_with_drainage", "time_integration": "forward_euler" },
+    "tolerances": { "abs": null, "rel": null },
+    "cfl_max": null,
+    "max_iters": 1,
+    "stabilization": {},
+    "notes": "AquaCrop computes daily water balance per compartment with empirical drainage, capillary rise, and root water uptake functions."
+  },
+
+  "stochastic": {
+    "$comment": "Noise can be added to soil parameters for spatial variability in multi-instance runs.",
+    "enabled": false,
+    "rng": "numpy.random.default_rng",
+    "seed": 42,
+    "ensemble": { "size": 1, "member_id": 0, "design": "single" },
+    "notes": "For spatial simulations, use noise parameter in SpatialSim3D to add ±N% variability to soil properties per pixel."
+  },
+
+  "performance": {
+    "$comment": "Parallelism/precision knobs.",
+    "mpi": { "enabled": false, "ranks": 1, "decomp": null },
+    "threads": 1,
+    "gpu": { "enabled": false, "backend": null },
+    "multiprocessing": {
+      "enabled": true,
+      "method": "ProcessPoolExecutor",
+      "notes": "Each process holds one AquaCrop instance (Fortran global state). UUID directories prevent collisions."
+    },
+    "precision": "fp64"
+  },
+
+  "io": {
+    "$comment": "Search paths, output formats, and logging policy.",
+    "input_search_paths": ["./outputs/simulation-data_*/"],
+    "output": {
+      "directory": "./outputs/simulation-data_${uuid8}/",
+      "naming": { "template": "simulation-data_${uuid8}" },
+      "formats": ["AquaCrop native (PRO/SOL/CLI/CRO/MAN/IRR)"],
+      "notes": "Each initialization creates a unique UUID-based output directory containing all AquaCrop config files."
+    },
+    "checkpoints": { "enabled": false },
+    "logs": { "level": "INFO", "verbose_mode": "AquaCrop(verbose=True) for Fortran debug output" }
+  },
+
+  "coupling": {
+    "$comment": "How/when to exchange vars if part of a coupled system.",
+    "framework": "BMI 2.0 / PyMT (CSDMS)",
+    "exchange_vars": [
+      "soil__moisture (out → PARFLOW, LISEM)",
+      "weather__rainfall_amount (in ← climate model)",
+      "crop__evapotranspiration (out → hydrological model)",
+      "crop__canopy_cover (out → WaTEM-SEDEM C-factor)"
+    ],
+    "interval": { "value": 86400, "units": "s" },
+    "lag": { "value": 0, "units": "s" },
+    "pymt_entry_point": "pymt.models.AquaCrop",
+    "notes": "Part of Digital Soil Twin project coupling AquaCrop, DSSAT, APSIM, PARFLOW, LISEM, WaTEM-SEDEM, PNFLOW via BMI/PyMT."
+  },
+
+  "test_dataset": {
+    "$comment": "Reference datasets for CI smoke tests and validation.",
+    "input_files": "Built-in: NASA POWER API + built-in CRO defaults",
+    "reference_sets": [
+      {
+        "name": "maize_denver_1layer",
+        "config": { "point": {"latitude": 39.9, "longitude": -105.2}, "crop_file": "MaizeGDD", "soils": "1 layer, 200cm" },
+        "expected_yield": 0.1713,
+        "expected_biomass": 0.5357
+      },
+      {
+        "name": "maize_denver_10layers",
+        "config": { "point": {"latitude": 39.9, "longitude": -105.2}, "crop_file": "MaizeGDD", "soils": "10 layers × 0.20m" },
+        "expected_yield": 2.2710,
+        "expected_canopy_peak": 86.3
+      }
+    ],
+    "description": "Maize simulation with Denver CO weather from NASA POWER, standard soil parameters"
+  },
+
+  "provenance": {
+    "$comment": "Fill at runtime for reproducibility.",
+    "run_id": null,
+    "git_sha": null,
+    "container": null,
+    "inputs_checksum": null,
+    "doi": null
+  },
+
+  "additional": {
+    "$comment": "Citations, license, and notes.",
+    "publications": [
+      "Steduto P, Hsiao TC, Raes D, Fereres E, 2009. AquaCrop—The FAO Crop Model to Simulate Yield Response to Water: I. Concepts and Underlying Principles. Agronomy Journal 101(3):426–437. https://doi.org/10.2134/agronj2008.0139s",
+      "Raes D, Steduto P, Hsiao TC, Fereres E, 2009. AquaCrop—The FAO Crop Model to Simulate Yield Response to Water: II. Main Algorithms and Software Description. Agronomy Journal 101(3):438–447. https://doi.org/10.2134/agronj2008.0140s",
+      "Szabó B, Weynants M, Weber TKD, 2021. Updated European hydraulic pedotransfer functions with communicated uncertainties in the predicted variables (euptfv2). Geosci. Model Dev. 14:151–175. https://doi.org/10.5194/gmd-14-151-2021"
+    ],
+    "license": "See LICENSE",
+    "fao_aquacrop_version": "7.1 (August 2023)",
+    "fortran_core": "Adapted from FAO AquaCrop v7.1 Fortran source with BMI interface layer",
+    "model_diagram": "todo"
+  }
+}

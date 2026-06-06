@@ -143,7 +143,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
 
 ! Exchange items
 integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
-integer, parameter :: output_item_count = 22 ! Phase 3: 10 soil layer moisture outputs
+integer, parameter :: output_item_count = 23
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
@@ -184,7 +184,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     'soil__moisture_layer_7       ', &
     'soil__moisture_layer_8       ', &
     'soil__moisture_layer_9       ', &
-    'soil__moisture_layer_10      ' &
+    'soil__moisture_layer_10      ', &
+    'soil__water_content_in_layers' &
     /)
 
 contains
@@ -430,8 +431,12 @@ character(len=*), intent(in) :: name
 integer, intent(out) :: grid
 integer :: bmi_status
 
-! All variables on scalar grid (grid 0)
-grid = 0
+select case(trim(name))
+case('soil__water_content_in_layers')
+    grid = 1
+case default
+    grid = 0
+end select
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_grid
 
@@ -500,26 +505,11 @@ case('crop__biomass_potential')
     units = "tonnes/ha"
 case('management__irrigation_amount')
     units = "mm"
-case('soil__moisture_layer_1')
-    units = "mm"
-case('soil__moisture_layer_2')
-    units = "mm"
-case('soil__moisture_layer_3')
-    units = "mm"
-case('soil__moisture_layer_4')
-    units = "mm"
-case('soil__moisture_layer_5')
-    units = "mm"
-case('soil__moisture_layer_6')
-    units = "mm"
-case('soil__moisture_layer_7')
-    units = "mm"
-case('soil__moisture_layer_8')
-    units = "mm"
-case('soil__moisture_layer_9')
-    units = "mm"
-case('soil__moisture_layer_10')
-    units = "mm"
+case('soil__moisture_layer_1','soil__moisture_layer_2','soil__moisture_layer_3', &
+     'soil__moisture_layer_4','soil__moisture_layer_5','soil__moisture_layer_6', &
+     'soil__moisture_layer_7','soil__moisture_layer_8','soil__moisture_layer_9', &
+     'soil__moisture_layer_10','soil__water_content_in_layers')
+    units = 'm3 m-3'
 case('atmosphere__co2_concentration')
     units = "ppm"
 case('management__mulch_cover')
@@ -560,12 +550,11 @@ class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 integer, intent(out) :: nbytes
 integer :: bmi_status
-integer :: grid_size, item_size
+integer :: grid, gsize
 
-! For scalar grid: nbytes = grid_size * item_size
-grid_size = 1
-item_size = c_sizeof(0.0d0)
-nbytes = grid_size * item_size
+bmi_status = this%get_var_grid(name, grid)
+bmi_status = this%get_grid_size(grid, gsize)
+nbytes = gsize * int(c_sizeof(0.0d0))
 
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_nbytes
@@ -616,8 +605,8 @@ function aquacrop_get_double(this, name, dest) result(bmi_status)
 class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 real(c_double), intent(inout) :: dest(:)
-integer :: bmi_status
-type(rep_sim) :: sim_temp  ! Temp variable for GetSimulation result
+integer :: bmi_status, i
+type(rep_sim) :: sim_temp
 
 ! Get actual values from AquaCrop global state
 select case(trim(name))
@@ -726,30 +715,24 @@ case('crop__biomass_potential')
     ! Value: t/ha
     dest(1) = real(GetSumWaBal_BiomassPot(), c_double)
 case('soil__moisture_layer_1')
-    ! Get water content in soil layer 1
-    ! Phase 3 addition: Per-layer soil moisture tracking
-    ! Units: mm
     if (GetSoil_NrSoilLayers() >= 1) then
         dest(1) = real(GetSoilLayerTheta(1), c_double)
     else
         dest(1) = -999.0d0  ! Layer doesn't exist
     end if
 case('soil__moisture_layer_2')
-    ! Get water content in soil layer 2
     if (GetSoil_NrSoilLayers() >= 2) then
         dest(1) = real(GetSoilLayerTheta(2), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_3')
-    ! Get water content in soil layer 3
     if (GetSoil_NrSoilLayers() >= 3) then
         dest(1) = real(GetSoilLayerTheta(3), c_double)
     else
         dest(1) = -999.0d0
     end if
 case('soil__moisture_layer_4')
-    ! Get water content in soil layer 4
     if (GetSoil_NrSoilLayers() >= 4) then
         dest(1) = real(GetSoilLayerTheta(4), c_double)
     else
@@ -791,6 +774,10 @@ case('soil__moisture_layer_10')
     else
         dest(1) = -999.0d0
     end if
+case('soil__water_content_in_layers')
+    do i = 1, GetSoil_NrSoilLayers()
+        dest(i) = real(GetSoilLayerTheta(i), c_double)
+    end do
 case default
     bmi_status = BMI_FAILURE
     return
@@ -964,6 +951,9 @@ select case(grid)
 case(0)
     type = "scalar"
     bmi_status = BMI_SUCCESS
+case(1)
+    type = 'uniform_rectilinear'
+    bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
 end select
@@ -979,7 +969,10 @@ integer :: bmi_status
 
 select case(grid)
 case(0)
-    rank = 0  ! Scalar
+    rank = 0
+    bmi_status = BMI_SUCCESS
+case(1)
+    rank = 1
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -996,7 +989,10 @@ integer :: bmi_status
 
 select case(grid)
 case(0)
-    size = 1  ! Single point
+    size = 1
+    bmi_status = BMI_SUCCESS
+case(1)
+    size = int(GetSoil_NrSoilLayers())
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -1011,8 +1007,13 @@ integer, intent(in) :: grid
 integer, dimension(:), intent(out) :: shape
 integer :: bmi_status
 
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
+select case(grid)
+case(1)
+    shape(1) = int(GetSoil_NrSoilLayers())
+    bmi_status = BMI_SUCCESS
+case default
+    bmi_status = BMI_FAILURE
+end select
 end function aquacrop_grid_shape
 
 ! ------------------------------------------------------------------------
@@ -1023,8 +1024,13 @@ integer, intent(in) :: grid
 real(c_double), dimension(:), intent(out) :: spacing
 integer :: bmi_status
 
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
+select case(grid)
+case(1)
+    spacing(1) = 1.0d0
+    bmi_status = BMI_SUCCESS
+case default
+    bmi_status = BMI_FAILURE
+end select
 end function aquacrop_grid_spacing
 
 ! ------------------------------------------------------------------------
@@ -1035,8 +1041,13 @@ integer, intent(in) :: grid
 real(c_double), dimension(:), intent(out) :: origin
 integer :: bmi_status
 
-bmi_status = BMI_FAILURE
-! Not applicable for scalar grid
+select case(grid)
+case(1)
+    origin(1) = 0.0d0
+    bmi_status = BMI_SUCCESS
+case default
+    bmi_status = BMI_FAILURE
+end select
 end function aquacrop_grid_origin
 
 ! ------------------------------------------------------------------------

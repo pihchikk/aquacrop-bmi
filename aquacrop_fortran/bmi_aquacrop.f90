@@ -536,12 +536,7 @@ character(len=*), intent(in) :: name
 integer, intent(out) :: size
 integer :: bmi_status
 
-select case(trim(name))
-case('management__irrigation_method')
-    size = c_sizeof(0)  ! Integer size (4 bytes)
-case default
-    size = c_sizeof(0.0d0)  ! Double precision (8 bytes)
-end select
+size = c_sizeof(0.0d0)
 
 bmi_status = BMI_SUCCESS
 end function aquacrop_var_itemsize

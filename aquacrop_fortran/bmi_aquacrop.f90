@@ -17,6 +17,8 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetRootingDepth, & ! Phase 4: Rooting depth
                      GetSoilLayer_WaterContent, GetSoil_NrSoilLayers, & ! Phase 3: Soil layers
                      GetSoilLayerTheta, & ! Dynamic compartment-based soil moisture
+                     GetSoilLayer_Thickness, GetNrCompartments, &
+                     GetCompartment_Thickness, SetCompartment_theta, &
                      ! Phase 6: Management inputs
                      GetManagement_Mulch, SetManagement_Mulch, &
                      GetManagement_BundHeight, SetManagement_BundHeight, &
@@ -142,7 +144,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
+integer, parameter :: input_item_count = 13
 integer, parameter :: output_item_count = 23
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
@@ -158,7 +160,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'management__mulch_cover              ', &
     'management__bund_height              ', &
     'management__weed_cover               ', &
-    'bmi__clear_weather_overrides         ' &
+    'bmi__clear_weather_overrides         ', &
+    'soil__water_content_in_layers        ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -820,6 +823,9 @@ real(c_double), intent(in) :: src(:)
 integer :: bmi_status
 integer(int8) :: fertility_value
 type(rep_EffectStress) :: EffectStress_temp
+integer :: theta_i, theta_j, theta_compi
+real(dp) :: theta_layer_top, theta_layer_bot, theta_comp_top, theta_comp_bot
+real(dp) :: theta_cum_depth, theta_overlap
 
 ! Currently only fertility stress can be set as input
 select case(trim(name))
@@ -928,6 +934,28 @@ case('bmi__clear_weather_overrides')
         BMI_has_Rain_override = .false.
         BMI_has_ETo_override = .false.
     end if
+    bmi_status = BMI_SUCCESS
+    return
+case('soil__water_content_in_layers')
+    do theta_i = 1, GetSoil_NrSoilLayers()
+        theta_layer_top = 0.0_dp
+        do theta_j = 1, theta_i - 1
+            theta_layer_top = theta_layer_top + GetSoilLayer_Thickness(theta_j)
+        end do
+        theta_layer_bot = theta_layer_top + GetSoilLayer_Thickness(theta_i)
+        theta_cum_depth = 0.0_dp
+        do theta_compi = 1, GetNrCompartments()
+            theta_comp_top = theta_cum_depth
+            theta_comp_bot = theta_cum_depth + GetCompartment_Thickness(theta_compi)
+            theta_overlap = max(0.0_dp, &
+                min(theta_comp_bot, theta_layer_bot) - max(theta_comp_top, theta_layer_top))
+            if (theta_overlap > 0.0_dp) then
+                call SetCompartment_theta(theta_compi, real(src(theta_i), dp))
+            end if
+            theta_cum_depth = theta_comp_bot
+            if (theta_cum_depth >= theta_layer_bot) exit
+        end do
+    end do
     bmi_status = BMI_SUCCESS
     return
 case default

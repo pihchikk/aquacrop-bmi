@@ -13,7 +13,7 @@ class BmiAquaCrop(Bmi):
     """BMI wrapper using existing aquacrop_api sync functions."""
 
     _name = "AquaCrop"
-    _input_var_names = ("crop__fertility_stress",)
+    _input_var_names = ("crop__fertility_stress", "soil__water_content_in_layers")
     _output_var_names = ("crop__yield", "crop__biomass", "crop__canopy_cover")
 
     def __init__(self) -> None:

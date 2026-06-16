@@ -143,6 +143,7 @@ class BmiAquaCrop(Bmi):
         'management__weed_cover',
         'atmosphere__co2_concentration',
         'crop__fertility_stress',
+        'soil__water_content_in_layers',
     )
     _output_var_names = (
         'crop__yield',

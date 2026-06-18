@@ -14,7 +14,13 @@ class BmiAquaCrop(Bmi):
 
     _name = "AquaCrop"
     _input_var_names = ("crop__fertility_stress", "soil__water_content_in_layers")
-    _output_var_names = ("crop__yield", "crop__biomass", "crop__canopy_cover")
+    _output_var_names = (
+        "crop__yield", "crop__biomass", "crop__canopy_cover",
+        "soil__water_content_in_compartments", "soil__compartment_thickness",
+        "soil_water__deep_percolation_flux", "land_surface_water__runoff_flux",
+        "soil_water__infiltration_flux", "soil__evaporation_flux",
+        "crop__transpiration_flux_actual", "soil_water__capillary_rise_flux",
+    )
 
     def __init__(self) -> None:
         self._time = 0.0

@@ -162,6 +162,14 @@ class BmiAquaCrop(Bmi):
         'soil__moisture_layer_8',
         'soil__moisture_layer_9',
         'soil__moisture_layer_10',
+        'soil__water_content_in_compartments',
+        'soil__compartment_thickness',
+        'soil_water__deep_percolation_flux',
+        'land_surface_water__runoff_flux',
+        'soil_water__infiltration_flux',
+        'soil__evaporation_flux',
+        'crop__transpiration_flux_actual',
+        'soil_water__capillary_rise_flux',
     )
     
     def __init__(self, original_cwd: Path | None = None, init_fortran: bool = True) -> None:

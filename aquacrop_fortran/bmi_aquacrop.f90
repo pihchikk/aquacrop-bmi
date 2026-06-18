@@ -19,6 +19,9 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      GetSoilLayerTheta, & ! Dynamic compartment-based soil moisture
                      GetSoilLayer_Thickness, GetNrCompartments, &
                      GetCompartment_Thickness, SetCompartment_theta, &
+                     GetCompartment_theta, &
+                     GetDrain, GetRunoff, GetInfiltrated, &
+                     GetEact, GetTact, GetCRwater, &
                      ! Phase 6: Management inputs
                      GetManagement_Mulch, SetManagement_Mulch, &
                      GetManagement_BundHeight, SetManagement_BundHeight, &
@@ -145,7 +148,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
 
 ! Exchange items
 integer, parameter :: input_item_count = 13
-integer, parameter :: output_item_count = 23
+integer, parameter :: output_item_count = 31
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
@@ -166,29 +169,37 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     output_items = (/ &
-    'crop__canopy_cover           ', &
-    'crop__biomass                ', &
-    'crop__yield                  ', &
-    'soil__moisture               ', &
-    'crop__water_stress           ', &
-    'crop__temperature_stress     ', &
-    'crop__aeration_stress        ', &
-    'crop__salinity_stress        ', &
-    'crop__rooting_depth          ', &
-    'crop__transpiration          ', &
-    'crop__evapotranspiration     ', &
-    'crop__biomass_potential      ', &
-    'soil__moisture_layer_1       ', &
-    'soil__moisture_layer_2       ', &
-    'soil__moisture_layer_3       ', &
-    'soil__moisture_layer_4       ', &
-    'soil__moisture_layer_5       ', &
-    'soil__moisture_layer_6       ', &
-    'soil__moisture_layer_7       ', &
-    'soil__moisture_layer_8       ', &
-    'soil__moisture_layer_9       ', &
-    'soil__moisture_layer_10      ', &
-    'soil__water_content_in_layers' &
+    'crop__canopy_cover                 ', &
+    'crop__biomass                      ', &
+    'crop__yield                        ', &
+    'soil__moisture                     ', &
+    'crop__water_stress                 ', &
+    'crop__temperature_stress           ', &
+    'crop__aeration_stress              ', &
+    'crop__salinity_stress              ', &
+    'crop__rooting_depth                ', &
+    'crop__transpiration                ', &
+    'crop__evapotranspiration           ', &
+    'crop__biomass_potential             ', &
+    'soil__moisture_layer_1             ', &
+    'soil__moisture_layer_2             ', &
+    'soil__moisture_layer_3             ', &
+    'soil__moisture_layer_4             ', &
+    'soil__moisture_layer_5             ', &
+    'soil__moisture_layer_6             ', &
+    'soil__moisture_layer_7             ', &
+    'soil__moisture_layer_8             ', &
+    'soil__moisture_layer_9             ', &
+    'soil__moisture_layer_10            ', &
+    'soil__water_content_in_layers      ', &
+    'soil__water_content_in_compartments', &
+    'soil__compartment_thickness        ', &
+    'soil_water__deep_percolation_flux  ', &
+    'land_surface_water__runoff_flux    ', &
+    'soil_water__infiltration_flux      ', &
+    'soil__evaporation_flux             ', &
+    'crop__transpiration_flux_actual    ', &
+    'soil_water__capillary_rise_flux    ' &
     /)
 
 contains
@@ -437,6 +448,8 @@ integer :: bmi_status
 select case(trim(name))
 case('soil__water_content_in_layers')
     grid = 1
+case('soil__water_content_in_compartments', 'soil__compartment_thickness')
+    grid = 2
 case default
     grid = 0
 end select
@@ -511,8 +524,15 @@ case('management__irrigation_amount')
 case('soil__moisture_layer_1','soil__moisture_layer_2','soil__moisture_layer_3', &
      'soil__moisture_layer_4','soil__moisture_layer_5','soil__moisture_layer_6', &
      'soil__moisture_layer_7','soil__moisture_layer_8','soil__moisture_layer_9', &
-     'soil__moisture_layer_10','soil__water_content_in_layers')
+     'soil__moisture_layer_10','soil__water_content_in_layers', &
+     'soil__water_content_in_compartments')
     units = 'm3 m-3'
+case('soil__compartment_thickness')
+    units = 'm'
+case('soil_water__deep_percolation_flux','land_surface_water__runoff_flux', &
+     'soil_water__infiltration_flux','soil__evaporation_flux', &
+     'crop__transpiration_flux_actual','soil_water__capillary_rise_flux')
+    units = 'mm'
 case('atmosphere__co2_concentration')
     units = "ppm"
 case('management__mulch_cover')
@@ -776,6 +796,26 @@ case('soil__water_content_in_layers')
     do i = 1, GetSoil_NrSoilLayers()
         dest(i) = real(GetSoilLayerTheta(i), c_double)
     end do
+case('soil__water_content_in_compartments')
+    do i = 1, GetNrCompartments()
+        dest(i) = real(GetCompartment_theta(i), c_double)
+    end do
+case('soil__compartment_thickness')
+    do i = 1, GetNrCompartments()
+        dest(i) = real(GetCompartment_Thickness(i), c_double)
+    end do
+case('soil_water__deep_percolation_flux')
+    dest(1) = real(GetDrain(), c_double)
+case('land_surface_water__runoff_flux')
+    dest(1) = real(GetRunoff(), c_double)
+case('soil_water__infiltration_flux')
+    dest(1) = real(GetInfiltrated(), c_double)
+case('soil__evaporation_flux')
+    dest(1) = real(GetEact(), c_double)
+case('crop__transpiration_flux_actual')
+    dest(1) = real(GetTact(), c_double)
+case('soil_water__capillary_rise_flux')
+    dest(1) = real(GetCRwater(), c_double)
 case default
     bmi_status = BMI_FAILURE
     return
@@ -977,6 +1017,9 @@ case(0)
 case(1)
     type = 'uniform_rectilinear'
     bmi_status = BMI_SUCCESS
+case(2)
+    type = 'uniform_rectilinear'
+    bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
 end select
@@ -995,6 +1038,9 @@ case(0)
     rank = 0
     bmi_status = BMI_SUCCESS
 case(1)
+    rank = 1
+    bmi_status = BMI_SUCCESS
+case(2)
     rank = 1
     bmi_status = BMI_SUCCESS
 case default
@@ -1017,6 +1063,9 @@ case(0)
 case(1)
     size = int(GetSoil_NrSoilLayers())
     bmi_status = BMI_SUCCESS
+case(2)
+    size = int(GetNrCompartments())
+    bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
 end select
@@ -1033,6 +1082,9 @@ integer :: bmi_status
 select case(grid)
 case(1)
     shape(1) = int(GetSoil_NrSoilLayers())
+    bmi_status = BMI_SUCCESS
+case(2)
+    shape(1) = int(GetNrCompartments())
     bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
@@ -1051,6 +1103,9 @@ select case(grid)
 case(1)
     spacing(1) = 1.0d0
     bmi_status = BMI_SUCCESS
+case(2)
+    spacing(1) = 1.0d0
+    bmi_status = BMI_SUCCESS
 case default
     bmi_status = BMI_FAILURE
 end select
@@ -1066,6 +1121,9 @@ integer :: bmi_status
 
 select case(grid)
 case(1)
+    origin(1) = 0.0d0
+    bmi_status = BMI_SUCCESS
+case(2)
     origin(1) = 0.0d0
     bmi_status = BMI_SUCCESS
 case default

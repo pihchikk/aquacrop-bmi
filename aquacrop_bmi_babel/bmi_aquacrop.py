@@ -943,7 +943,11 @@ class BmiAquaCrop(Bmi):
             project.write_climate_files(season.simulation_start, weather_data)
             project.write_crop_file(crop_index, crop_params)
             project.write_fertility_management_file(fertility_stress)
-            project.write_gwt_file(depth=data.gwt_depth, ec=data.gwt_ec)
+            if isinstance(data.gwt_depth, list):
+                project.write_gwt_file(gwt_series=[
+                    {"day": e.day, "depth": e.depth, "ec": e.ec} for e in data.gwt_depth])
+            else:
+                project.write_gwt_file(depth=data.gwt_depth, ec=data.gwt_ec)
             project.write_soil_file(soil_params)
             project.write_sw0_file(soil_params)
             project.write_calendar_file(season)

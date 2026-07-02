@@ -341,8 +341,14 @@ class CropOverrides(BaseModel):
 
 
 
+class GwtEntry(BaseModel):
+    day: int
+    depth: float
+    ec: float = 0.0
+
+
 class InputBase(BaseModel):
-    gwt_depth: Annotated[float, Field(description='Уровень грунтовых вод, м')]
+    gwt_depth: Annotated[float | list[GwtEntry], Field(description='Уровень грунтовых вод, м')]
     gwt_ec: Annotated[float, Field(description='Электропроводность грунтовых вод')]
     point: Point | Point3D
 

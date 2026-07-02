@@ -32,7 +32,8 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      BMI_Tmin_override_value, &
                      BMI_Tmax_override_value, &
                      BMI_Rain_override_value, &
-                     BMI_ETo_override_value
+                     BMI_ETo_override_value, &
+                     SetZiAqua, SetECiAqua
 use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
                   GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
                   GetSumWaBal_Tact, GetSumWaBal_Eact, GetSumWaBal_BiomassPot, & ! Phase 4
@@ -142,7 +143,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 12 ! Phase 6: added CO2, Mulch, Bund, Weed
+integer, parameter :: input_item_count = 14
 integer, parameter :: output_item_count = 23
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
@@ -158,7 +159,9 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'management__mulch_cover              ', &
     'management__bund_height              ', &
     'management__weed_cover               ', &
-    'bmi__clear_weather_overrides         ' &
+    'bmi__clear_weather_overrides         ', &
+    'groundwater__depth                   ', &
+    'groundwater__ec                      ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -518,6 +521,10 @@ case('management__bund_height')
     units = "m"
 case('management__weed_cover')
     units = "%"
+case('groundwater__depth')
+    units = 'm'
+case('groundwater__ec')
+    units = 'dS m-1'
 case default
     units = "-"
 end select
@@ -928,6 +935,14 @@ case('bmi__clear_weather_overrides')
         BMI_has_Rain_override = .false.
         BMI_has_ETo_override = .false.
     end if
+    bmi_status = BMI_SUCCESS
+    return
+case('groundwater__depth')
+    call SetZiAqua(int(src(1) * 100.0d0))
+    bmi_status = BMI_SUCCESS
+    return
+case('groundwater__ec')
+    call SetECiAqua(src(1))
     bmi_status = BMI_SUCCESS
     return
 case default

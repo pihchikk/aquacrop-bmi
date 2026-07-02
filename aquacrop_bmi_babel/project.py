@@ -134,11 +134,21 @@ class AquacropProject:
         *,
         depth: float = 2.0,
         ec: float = 0.0,
+        gwt_series: list[dict] | None = None,
     ) -> None:
-        self.root.joinpath('project.GWT').write_text(templates.GWT_CONTENT.format(
-            depth=depth,
-            ec=ec,
-        ))
+        path = self.root.joinpath('project.GWT')
+        if gwt_series:
+            with path.open('w', encoding='utf-8') as f:
+                f.write("project\n")
+                f.write("        7.1                 : AquaCrop Version (August 2023)\n")
+                f.write("     3     : variable depth and salinity\n")
+                f.write("\n")
+                f.write("   Day    Depth (m)    ECw (dS/m)\n")
+                f.write("====================================\n")
+                for e in gwt_series:
+                    f.write(f"  {e['day']:4d}      {e['depth']:.2f}          {e['ec']:.1f}\n")
+        else:
+            path.write_text(templates.GWT_CONTENT.format(depth=depth, ec=ec))
 
 
     def write_calendar_file(

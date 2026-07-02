@@ -148,17 +148,17 @@ integer, parameter :: output_item_count = 23
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
-    'crop__fertility_stress               ', &
-    'weather__rainfall_amount             ', &
-    'weather__air_temperature_min         ', &
-    'weather__air_temperature_max         ', &
-    'weather__reference_evapotranspiration', &
-    'management__irrigation_method        ', &
-    'management__irrigation_amount        ', &
-    'atmosphere__co2_concentration        ', &
-    'management__mulch_cover              ', &
-    'management__bund_height              ', &
-    'management__weed_cover               ', &
+    'plant_fertility-stress               ', &
+    'air_precipitation                    ', &
+    'air_temperature_minimum~day          ', &
+    'air_temperature_maximal~day          ', &
+    'air_evapotranspiration~reference     ', &
+    'management_irrigation_method         ', &
+    'management_irrigation_amount         ', &
+    'atmosphere_co2-concentration         ', &
+    'management_mulch-cover               ', &
+    'management_bund-height               ', &
+    'management_weed-cover                ', &
     'bmi__clear_weather_overrides         ', &
     'groundwater__depth                   ', &
     'groundwater__ec                      ' &
@@ -166,32 +166,80 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     output_items = (/ &
-    'crop__canopy_cover           ', &
-    'crop__biomass                ', &
-    'crop__yield                  ', &
-    'soil__moisture               ', &
-    'crop__water_stress           ', &
-    'crop__temperature_stress     ', &
-    'crop__aeration_stress        ', &
-    'crop__salinity_stress        ', &
-    'crop__rooting_depth          ', &
-    'crop__transpiration          ', &
-    'crop__evapotranspiration     ', &
-    'crop__biomass_potential      ', &
-    'soil__moisture_layer_1       ', &
-    'soil__moisture_layer_2       ', &
-    'soil__moisture_layer_3       ', &
-    'soil__moisture_layer_4       ', &
-    'soil__moisture_layer_5       ', &
-    'soil__moisture_layer_6       ', &
-    'soil__moisture_layer_7       ', &
-    'soil__moisture_layer_8       ', &
-    'soil__moisture_layer_9       ', &
-    'soil__moisture_layer_10      ', &
+    'plant_cover~projective       ', &
+    'plant_biomass~above-ground   ', &
+    'plant_yield~standard         ', &
+    'soil_water_actual            ', &
+    'plant_stress_water           ', &
+    'plant_stress_temperature     ', &
+    'plant_stress_aeration        ', &
+    'plant_stress_salinity        ', &
+    'plant_root_depth             ', &
+    'air_transpiration            ', &
+    'air_evapotranspiration~plants', &
+    'plant_biomass_potential      ', &
+    'soil_water_actual_layer-1    ', &
+    'soil_water_actual_layer-2    ', &
+    'soil_water_actual_layer-3    ', &
+    'soil_water_actual_layer-4    ', &
+    'soil_water_actual_layer-5    ', &
+    'soil_water_actual_layer-6    ', &
+    'soil_water_actual_layer-7    ', &
+    'soil_water_actual_layer-8    ', &
+    'soil_water_actual_layer-9    ', &
+    'soil_water_actual_layer-10   ', &
     'soil__water_content_in_layers' &
     /)
 
 contains
+
+! ========================================================================
+! Alias resolver: maps old CSDMS names to canonical ESoil names
+! ========================================================================
+
+function resolve_var_alias(name) result(canonical)
+    character(len=*), intent(in) :: name
+    character(len=BMI_MAX_VAR_NAME) :: canonical
+
+    select case(trim(name))
+    case('crop__yield');                    canonical = 'plant_yield~standard'
+    case('crop__biomass');                  canonical = 'plant_biomass~above-ground'
+    case('crop__biomass_potential');        canonical = 'plant_biomass_potential'
+    case('crop__canopy_cover');             canonical = 'plant_cover~projective'
+    case('crop__rooting_depth');            canonical = 'plant_root_depth'
+    case('crop__transpiration');            canonical = 'air_transpiration'
+    case('crop__evapotranspiration');       canonical = 'air_evapotranspiration~plants'
+    case('crop__water_stress');             canonical = 'plant_stress_water'
+    case('crop__temperature_stress');       canonical = 'plant_stress_temperature'
+    case('crop__aeration_stress');          canonical = 'plant_stress_aeration'
+    case('crop__salinity_stress');          canonical = 'plant_stress_salinity'
+    case('soil__moisture');                 canonical = 'soil_water_actual'
+    case('soil__moisture_layer_1');         canonical = 'soil_water_actual_layer-1'
+    case('soil__moisture_layer_2');         canonical = 'soil_water_actual_layer-2'
+    case('soil__moisture_layer_3');         canonical = 'soil_water_actual_layer-3'
+    case('soil__moisture_layer_4');         canonical = 'soil_water_actual_layer-4'
+    case('soil__moisture_layer_5');         canonical = 'soil_water_actual_layer-5'
+    case('soil__moisture_layer_6');         canonical = 'soil_water_actual_layer-6'
+    case('soil__moisture_layer_7');         canonical = 'soil_water_actual_layer-7'
+    case('soil__moisture_layer_8');         canonical = 'soil_water_actual_layer-8'
+    case('soil__moisture_layer_9');         canonical = 'soil_water_actual_layer-9'
+    case('soil__moisture_layer_10');        canonical = 'soil_water_actual_layer-10'
+    case('weather__rainfall_amount');               canonical = 'air_precipitation'
+    case('weather__air_temperature_max');           canonical = 'air_temperature_maximal~day'
+    case('weather__air_temperature_min');           canonical = 'air_temperature_minimum~day'
+    case('weather__reference_evapotranspiration');  canonical = 'air_evapotranspiration~reference'
+    case('management__irrigation_amount');          canonical = 'management_irrigation_amount'
+    case('management__irrigation_method');          canonical = 'management_irrigation_method'
+    case('management__mulch_cover');                canonical = 'management_mulch-cover'
+    case('management__bund_height');                canonical = 'management_bund-height'
+    case('management__weed_cover');                 canonical = 'management_weed-cover'
+    case('management__surface_storage');            canonical = 'management_surface-storage'
+    case('atmosphere__co2_concentration');          canonical = 'atmosphere_co2-concentration'
+    case('crop__fertility_stress');                 canonical = 'plant_fertility-stress'
+    case default
+        canonical = name
+    end select
+end function resolve_var_alias
 
 ! ========================================================================
 ! BMI: Model Control Functions
@@ -433,8 +481,10 @@ class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 integer, intent(out) :: grid
 integer :: bmi_status
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
-select case(trim(name))
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
 case('soil__water_content_in_layers')
     grid = 1
 case default
@@ -451,15 +501,18 @@ character(len=*), intent(in) :: name
 character(len=*), intent(out) :: type
 integer :: bmi_status
 
-select case(trim(name))
-case('management__irrigation_method')
-    type = "real*8"  ! â† Change from "integer" to "real*8"
+character(len=BMI_MAX_VAR_NAME) :: resolved
+
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
+case('management_irrigation_method')
+    type = "real*8"
 case default
     type = "real*8"
 end select
 
 bmi_status = BMI_SUCCESS
-end function aquacrop_var_type ! HAND FIX 20:15 11.11.25
+end function aquacrop_var_type
 
 ! ------------------------------------------------------------------------
 
@@ -468,58 +521,60 @@ class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 character(len=*), intent(out) :: units
 integer :: bmi_status
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
-select case(trim(name))
-case('crop__canopy_cover')
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
+case('plant_cover~projective')
     units = "percent"
-case('crop__biomass')
+case('plant_biomass~above-ground')
     units = "tonnes/ha"
-case('crop__yield')
+case('plant_yield~standard')
     units = "tonnes/ha"
-case('soil__moisture')
+case('soil_water_actual')
     units = "mm"
-case('crop__fertility_stress')
+case('plant_fertility-stress')
     units = "percent"
-case('weather__rainfall_amount')
+case('air_precipitation')
     units = "mm/day"
-case('weather__air_temperature_min')
+case('air_temperature_minimum~day')
     units = "degrees_Celsius"
-case('weather__air_temperature_max')
+case('air_temperature_maximal~day')
     units = "degrees_Celsius"
-case('weather__reference_evapotranspiration')
+case('air_evapotranspiration~reference')
     units = "mm/day"
-case('management__irrigation_method') ! hand changed 11.11.2025
+case('management_irrigation_method')
     units = "enumeration"
-case('crop__water_stress')
+case('plant_stress_water')
     units = "days"
-case('crop__temperature_stress')
+case('plant_stress_temperature')
     units = "days"
-case('crop__aeration_stress')
+case('plant_stress_aeration')
     units = "days"
-case('crop__salinity_stress')
+case('plant_stress_salinity')
     units = "days"
-case('crop__rooting_depth')
+case('plant_root_depth')
     units = "m"
-case('crop__transpiration')
+case('air_transpiration')
     units = "mm"
-case('crop__evapotranspiration')
+case('air_evapotranspiration~plants')
     units = "mm"
-case('crop__biomass_potential')
+case('plant_biomass_potential')
     units = "tonnes/ha"
-case('management__irrigation_amount')
+case('management_irrigation_amount')
     units = "mm"
-case('soil__moisture_layer_1','soil__moisture_layer_2','soil__moisture_layer_3', &
-     'soil__moisture_layer_4','soil__moisture_layer_5','soil__moisture_layer_6', &
-     'soil__moisture_layer_7','soil__moisture_layer_8','soil__moisture_layer_9', &
-     'soil__moisture_layer_10','soil__water_content_in_layers')
+case('soil_water_actual_layer-1','soil_water_actual_layer-2','soil_water_actual_layer-3', &
+     'soil_water_actual_layer-4','soil_water_actual_layer-5','soil_water_actual_layer-6', &
+     'soil_water_actual_layer-7','soil_water_actual_layer-8','soil_water_actual_layer-9', &
+     'soil_water_actual_layer-10','soil__water_content_in_layers')
     units = 'm3 m-3'
-case('atmosphere__co2_concentration')
+case('atmosphere_co2-concentration')
     units = "ppm"
-case('management__mulch_cover')
+case('management_mulch-cover')
     units = "%"
-case('management__bund_height')
+case('management_bund-height')
     units = "m"
-case('management__weed_cover')
+case('management_weed-cover')
     units = "%"
 case('groundwater__depth')
     units = 'm'
@@ -539,9 +594,11 @@ class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 integer, intent(out) :: size
 integer :: bmi_status
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
-select case(trim(name))
-case('management__irrigation_method')
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
+case('management_irrigation_method')
     size = c_sizeof(0)  ! Integer size (4 bytes)
 case default
     size = c_sizeof(0.0d0)  ! Double precision (8 bytes)
@@ -614,168 +671,169 @@ character(len=*), intent(in) :: name
 real(c_double), intent(inout) :: dest(:)
 integer :: bmi_status, i
 type(rep_sim) :: sim_temp
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
-! Get actual values from AquaCrop global state
-select case(trim(name))
-case('crop__fertility_stress')
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
+case('plant_fertility-stress')
     ! Get current fertility stress setting (0-100%)
     ! This is an input variable that affects crop growth
     dest(1) = real(GetManagement_FertilityStress(), c_double)
-case('weather__rainfall_amount')
+case('air_precipitation')
     ! Get current day's rainfall in mm/day
     dest(1) = real(GetRain(), c_double)
-case('weather__air_temperature_min')
+case('air_temperature_minimum~day')
     ! Get current day's minimum air temperature in degrees Celsius
     dest(1) = real(GetTmin(), c_double)
-case('weather__air_temperature_max')
+case('air_temperature_maximal~day')
     ! Get current day's maximum air temperature in degrees Celsius
     dest(1) = real(GetTmax(), c_double)
-case('weather__reference_evapotranspiration')
+case('air_evapotranspiration~reference')
     ! Get current day's reference evapotranspiration (ET0) in mm/day
     dest(1) = real(GetETo(), c_double) ! hand added 20:02 11.11.25
-case('management__irrigation_method')
+case('management_irrigation_method')
     ! Get current irrigation method
     ! 0=Basin, 1=Border, 2=Drip, 3=Furrow, 4=Sprinkler
     dest(1) = real(GetIrriMethod(), c_double)
-case('management__irrigation_amount')
+case('management_irrigation_amount')
     ! Get cumulative irrigation amount applied
     ! Phase 2 addition: Dynamic irrigation tracking
     ! Units: mm (cumulative)
     dest(1) = real(GetIrrigation(), c_double)  
-case('atmosphere__co2_concentration')
+case('atmosphere_co2-concentration')
     ! Get current atmospheric CO2 concentration
     ! Phase 6 addition: Climate change scenarios
     ! Units: ppm
     dest(1) = real(GetCO2i(), c_double)
-case('management__mulch_cover')
+case('management_mulch-cover')
     ! Get soil mulch cover percentage
     ! Phase 6 addition: Field management
     ! Units: percent (0-100)
     dest(1) = real(GetManagement_Mulch(), c_double)
-case('management__bund_height')
+case('management_bund-height')
     ! Get water retention bund height
     ! Phase 6 addition: Field management
     ! Units: meters
     dest(1) = real(GetManagement_BundHeight(), c_double)
-case('management__weed_cover')
+case('management_weed-cover')
     ! Get weed relative cover percentage
     ! Phase 6 addition: Field management
     ! Units: percent (0-100)
     dest(1) = real(GetManagement_WeedRC(), c_double)
-case('crop__canopy_cover')
+case('plant_cover~projective')
     ! Get CURRENT actual canopy cover (CCiActual), not CCini
     ! CCiActual is updated during simulation and represents the actual canopy cover
     ! Returns as percentage (0-100)
     dest(1) = real(GetCCiActual() * 100.0_dp, c_double)
-case('crop__biomass')
+case('plant_biomass~above-ground')
     ! Get cumulative biomass production in tonnes/ha
     ! This is the total above-ground dry biomass produced
     dest(1) = real(GetSumWaBal_Biomass(), c_double)
-case('crop__yield')
+case('plant_yield~standard')
     ! Get cumulative yield in tonnes/ha
     ! This is the harvestable yield (grain, tubers, etc.)
     dest(1) = real(GetSumWaBal_YieldPart(), c_double)
-case('soil__moisture')
+case('soil_water_actual')
     ! Get root zone water content in mm
     ! Returns actual water content in the active root zone only
     ! (not the full soil profile, only where roots are extracting water)
     dest(1) = real(GetRootZoneWC_Actual(), c_double)
-case('crop__water_stress')
+case('plant_stress_water')
     ! Get water stress (stomatal + expansion) - cumulative stress from storage and leaf expansion
     ! Phase 5 addition: Returns stress from water stress on stomata (GetStressTot_Sto)
     ! Value range: 0-100+ (cumulative days or percentage)
     dest(1) = real(GetStressTot_Sto(), c_double)
-case('crop__temperature_stress')
+case('plant_stress_temperature')
     ! Get temperature stress - cumulative temperature stress days
     ! Phase 5 addition: Temperature stress factor
     ! Value range: 0-100+ (cumulative)
     dest(1) = real(GetStressTot_Temp(), c_double)
-case('crop__aeration_stress')
+case('plant_stress_aeration')
     ! Get aeration stress - days under anaerobic conditions
     ! Phase 5 addition: Aeration/oxygen stress indicator
     ! Value: number of days with waterlogging
     sim_temp = GetSimulation()
     dest(1) = real(sim_temp%DayAnaero, c_double)
-case('crop__salinity_stress')
+case('plant_stress_salinity')
     ! Get salinity stress - cumulative salt stress
     ! Phase 5 addition: Salt stress indicator
     ! Value range: 0-100+ (cumulative)
     dest(1) = real(GetStressTot_Salt(), c_double)
-case('crop__rooting_depth')
+case('plant_root_depth')
     ! Get current rooting depth in meters
     ! Phase 4 addition: Crop root development indicator
     ! Value range: 0-3+ (meters)
     dest(1) = real(GetRootingDepth(), c_double)
-case('crop__transpiration')
+case('air_transpiration')
     ! Get cumulative actual crop transpiration
     ! Phase 4 addition: Water use by crop
     ! Value: Cumulative mm of water transpired
     dest(1) = real(GetSumWaBal_Tact(), c_double)
-case('crop__evapotranspiration')
+case('air_evapotranspiration~plants')
     ! Get cumulative actual evapotranspiration (E + Tr)
     ! Phase 4 addition: Total water loss from field
     ! Value: Cumulative mm (soil evaporation + crop transpiration)
     dest(1) = real(GetSumWaBal_Eact(), c_double)
-case('crop__biomass_potential')
+case('plant_biomass_potential')
     ! Get potential biomass without stress
     ! Phase 4 addition: Biomass production if no stress
     ! Value: t/ha
     dest(1) = real(GetSumWaBal_BiomassPot(), c_double)
-case('soil__moisture_layer_1')
+case('soil_water_actual_layer-1')
     if (GetSoil_NrSoilLayers() >= 1) then
         dest(1) = real(GetSoilLayerTheta(1), c_double)
     else
         dest(1) = -999.0d0  ! Layer doesn't exist
     end if
-case('soil__moisture_layer_2')
+case('soil_water_actual_layer-2')
     if (GetSoil_NrSoilLayers() >= 2) then
         dest(1) = real(GetSoilLayerTheta(2), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_3')
+case('soil_water_actual_layer-3')
     if (GetSoil_NrSoilLayers() >= 3) then
         dest(1) = real(GetSoilLayerTheta(3), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_4')
+case('soil_water_actual_layer-4')
     if (GetSoil_NrSoilLayers() >= 4) then
         dest(1) = real(GetSoilLayerTheta(4), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_5')
+case('soil_water_actual_layer-5')
     if (GetSoil_NrSoilLayers() >= 5) then
         dest(1) = real(GetSoilLayerTheta(5), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_6')
+case('soil_water_actual_layer-6')
     if (GetSoil_NrSoilLayers() >= 6) then
         dest(1) = real(GetSoilLayerTheta(6), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_7')
+case('soil_water_actual_layer-7')
     if (GetSoil_NrSoilLayers() >= 7) then
         dest(1) = real(GetSoilLayerTheta(7), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_8')
+case('soil_water_actual_layer-8')
     if (GetSoil_NrSoilLayers() >= 8) then
         dest(1) = real(GetSoilLayerTheta(8), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_9')
+case('soil_water_actual_layer-9')
     if (GetSoil_NrSoilLayers() >= 9) then
         dest(1) = real(GetSoilLayerTheta(9), c_double)
     else
         dest(1) = -999.0d0
     end if
-case('soil__moisture_layer_10')
+case('soil_water_actual_layer-10')
     if (GetSoil_NrSoilLayers() >= 10) then
         dest(1) = real(GetSoilLayerTheta(10), c_double)
     else
@@ -827,10 +885,11 @@ real(c_double), intent(in) :: src(:)
 integer :: bmi_status
 integer(int8) :: fertility_value
 type(rep_EffectStress) :: EffectStress_temp
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
-! Currently only fertility stress can be set as input
-select case(trim(name))
-case('crop__fertility_stress')
+resolved = resolve_var_alias(name)
+select case(trim(resolved))
+case('plant_fertility-stress')
     ! Set fertility stress (0-100%)
     ! Convert from double to int8, ensure it's in valid range
     fertility_value = int(max(0.0d0, min(100.0d0, src(1))), int8)
@@ -850,7 +909,7 @@ case('crop__fertility_stress')
     
     bmi_status = BMI_SUCCESS
     return
-case('weather__rainfall_amount')
+case('air_precipitation')
     ! Set current day's rainfall in mm/day
     ! Phase 7: Use persistent override system
     BMI_Rain_override_value = real(max(0.0d0, src(1)), dp)
@@ -858,7 +917,7 @@ case('weather__rainfall_amount')
     call SetRain(BMI_Rain_override_value)
     bmi_status = BMI_SUCCESS
     return
-case('weather__air_temperature_min')
+case('air_temperature_minimum~day')
     ! Set current day's minimum air temperature in degrees Celsius
     ! Phase 7: Use persistent override system
     BMI_Tmin_override_value = real(src(1), dp)
@@ -866,7 +925,7 @@ case('weather__air_temperature_min')
     call SetTmin(BMI_Tmin_override_value)
     bmi_status = BMI_SUCCESS
     return
-case('weather__air_temperature_max')
+case('air_temperature_maximal~day')
     ! Set current day's maximum air temperature in degrees Celsius
     ! Phase 7: Use persistent override system
     BMI_Tmax_override_value = real(src(1), dp)
@@ -874,13 +933,13 @@ case('weather__air_temperature_max')
     call SetTmax(BMI_Tmax_override_value)
     bmi_status = BMI_SUCCESS
     return
-case('management__irrigation_method') ! hand added 20:02 11.11.25
+case('management_irrigation_method') ! hand added 20:02 11.11.25
     ! Set irrigation method (0=Basin, 1=Border, 2=Drip, 3=Furrow, 4=Sprinkler)
     ! Clamp to valid range [0, 4]
     call SetIrriMethod(int(nint(max(0.0d0, min(4.0d0, src(1)))), kind=int8))
     bmi_status = BMI_SUCCESS
     return
-case('weather__reference_evapotranspiration')
+case('air_evapotranspiration~reference')
     ! Set current day's reference evapotranspiration (ET0) in mm/day
     ! Phase 7: Use persistent override system
     BMI_ETo_override_value = real(max(0.0d0, src(1)), dp)
@@ -888,7 +947,7 @@ case('weather__reference_evapotranspiration')
     call SetETo(BMI_ETo_override_value)
     bmi_status = BMI_SUCCESS
     return
-case('management__irrigation_amount')
+case('management_irrigation_amount')
     ! Set daily irrigation amount in mm/day
     ! Phase 2 addition: Allows dynamic irrigation scheduling
     ! *** CRITICAL FIX: Must set both current irrigation AND update sum ***
@@ -897,28 +956,28 @@ case('management__irrigation_amount')
     call SetSumWabal_Irrigation(GetSumWaBal_Irrigation() + real(max(0.0d0, src(1)), dp))
     bmi_status = BMI_SUCCESS
     return
-case('atmosphere__co2_concentration')
+case('atmosphere_co2-concentration')
     ! Set atmospheric CO2 concentration
     ! Phase 6 addition: Climate change scenarios
     ! Units: ppm (parts per million)
     call SetCO2i(real(max(280.0d0, src(1)), dp))  ! Clamp to realistic min
     bmi_status = BMI_SUCCESS
     return
-case('management__mulch_cover')
+case('management_mulch-cover')
     ! Set mulch soil cover percentage
     ! Phase 6 addition: Field management
     ! Units: percent (0-100)
     call SetManagement_Mulch(int(max(0.0d0, min(100.0d0, src(1))), int8))
     bmi_status = BMI_SUCCESS
     return
-case('management__bund_height')
+case('management_bund-height')
     ! Set water retention bund height
     ! Phase 6 addition: Field management
     ! Units: meters
     call SetManagement_BundHeight(real(max(0.0d0, src(1)), dp))
     bmi_status = BMI_SUCCESS
     return
-case('management__weed_cover')
+case('management_weed-cover')
     ! Set weed relative cover percentage
     ! Phase 6 addition: Field management
     ! Units: percent (0-100)

@@ -526,23 +526,23 @@ character(len=BMI_MAX_VAR_NAME) :: resolved
 resolved = resolve_var_alias(name)
 select case(trim(resolved))
 case('plant_cover~projective')
-    units = "percent"
+    units = "%"
 case('plant_biomass~above-ground')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('plant_yield~standard')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('soil_water_actual')
     units = "mm"
 case('plant_fertility-stress')
-    units = "percent"
+    units = "%"
 case('air_precipitation')
-    units = "mm/day"
+    units = "mm d-1"
 case('air_temperature_minimum~day')
-    units = "degrees_Celsius"
+    units = "degC"
 case('air_temperature_maximal~day')
-    units = "degrees_Celsius"
+    units = "degC"
 case('air_evapotranspiration~reference')
-    units = "mm/day"
+    units = "mm d-1"
 case('management_irrigation_method')
     units = "enumeration"
 case('plant_stress_water')
@@ -560,7 +560,7 @@ case('air_transpiration')
 case('air_evapotranspiration~plants')
     units = "mm"
 case('plant_biomass_potential')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('management_irrigation_amount')
     units = "mm"
 case('soil_water_actual_layer-1','soil_water_actual_layer-2','soil_water_actual_layer-3', &

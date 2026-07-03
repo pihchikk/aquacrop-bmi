@@ -136,23 +136,22 @@ class AquacropProject:
         ec: float = 0.0,
         gwt_series: list[dict] | None = None,
     ) -> None:
+        path = self.root.joinpath('project.GWT')
         if gwt_series:
-            lines = [
-                "project\n",
-                "        7.1                 : AquaCrop Version\n",
-                "     3     : variable depth and salinity\n",
-                "\n",
-                "   Day    Depth (m)    ECw (dS/m)\n",
-                "====================================\n",
-            ]
-            for e in gwt_series:
-                lines.append(f"  {e['day']:4d}      {e['depth']:.2f}          {e['ec']:.1f}\n")
-            self.root.joinpath('project.GWT').write_text("".join(lines))
+            with path.open('w', encoding='utf-8') as f:
+                f.write("project\n")
+                f.write("        7.1                 : AquaCrop Version (August 2023)\n")
+                f.write("     3     : variable depth and salinity\n")
+                f.write("     1     : first day of observations\n")
+                f.write("     1     : first month of observations\n")
+                f.write("  1901     : first year (1901 = not linked to a specific year)\n")
+                f.write("\n")
+                f.write("   Day    Depth (m)    ECw (dS/m)\n")
+                f.write("====================================\n")
+                for e in gwt_series:
+                    f.write(f"  {e['day']:4d}      {e['depth']:.2f}          {e['ec']:.1f}\n")
         else:
-            self.root.joinpath('project.GWT').write_text(templates.GWT_CONTENT.format(
-                depth=depth,
-                ec=ec,
-            ))
+            path.write_text(templates.GWT_CONTENT.format(depth=depth, ec=ec))
 
 
     def write_calendar_file(

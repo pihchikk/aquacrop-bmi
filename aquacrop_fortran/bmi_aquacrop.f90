@@ -166,8 +166,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'management_weed-cover                ', &
     'bmi__clear_weather_overrides         ', &
     'soil__water_content_in_layers        ', &
-    'water~ground_depth                   ', &
-    'water~ground_electrical-conductivity ' &
+    'groundwater__depth                   ', &
+    'groundwater__ec                      ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -182,7 +182,7 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     'plant_stress_salinity                ', &
     'plant_root_depth                     ', &
     'air_transpiration                    ', &
-    'air_evaporation~transpiration_plants ', &
+    'air_evapotranspiration~plants        ', &
     'plant_biomass_potential              ', &
     'soil_water_actual_layer-1            ', &
     'soil_water_actual_layer-2            ', &
@@ -222,7 +222,7 @@ function resolve_var_alias(name) result(canonical)
     case('crop__canopy_cover');             canonical = 'plant_cover~projective'
     case('crop__rooting_depth');            canonical = 'plant_root_depth'
     case('crop__transpiration');            canonical = 'air_transpiration'
-    case('crop__evapotranspiration');       canonical = 'air_evaporation~transpiration_plants'
+    case('crop__evapotranspiration');       canonical = 'air_evapotranspiration~plants'
     case('crop__water_stress');             canonical = 'plant_stress_water'
     case('crop__temperature_stress');       canonical = 'plant_stress_temperature'
     case('crop__aeration_stress');          canonical = 'plant_stress_aeration'
@@ -247,6 +247,7 @@ function resolve_var_alias(name) result(canonical)
     case('management__mulch_cover');                canonical = 'management_mulch-cover'
     case('management__bund_height');                canonical = 'management_bund-height'
     case('management__weed_cover');                 canonical = 'management_weed-cover'
+    case('management__surface_storage');             canonical = 'management_surface-storage'
     case('atmosphere__co2_concentration');           canonical = 'atmosphere_co2-concentration'
     case('crop__fertility_stress');                  canonical = 'plant_fertility-stress'
     case('soil__compartment_thickness');             canonical = 'soil_depth~compartment'
@@ -527,13 +528,13 @@ character(len=BMI_MAX_VAR_NAME) :: resolved
 resolved = resolve_var_alias(name)
 select case(trim(resolved))
 case('management_irrigation_method')
-    type = "real*8"  ! â† Change from "integer" to "real*8"
+    type = "real*8"
 case default
     type = "real*8"
 end select
 
 bmi_status = BMI_SUCCESS
-end function aquacrop_var_type ! HAND FIX 20:15 11.11.25
+end function aquacrop_var_type
 
 ! ------------------------------------------------------------------------
 
@@ -547,23 +548,23 @@ character(len=BMI_MAX_VAR_NAME) :: resolved
 resolved = resolve_var_alias(name)
 select case(trim(resolved))
 case('plant_cover~projective')
-    units = "percent"
+    units = "%"
 case('plant_biomass~above-ground')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('plant_yield~standard')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('soil_water_actual')
     units = "mm"
 case('plant_fertility-stress')
-    units = "percent"
+    units = "%"
 case('air_precipitation')
-    units = "mm/day"
+    units = "mm d-1"
 case('air_temperature_minimum~day')
-    units = "degrees_Celsius"
+    units = "degC"
 case('air_temperature_maximal~day')
-    units = "degrees_Celsius"
+    units = "degC"
 case('air_evapotranspiration~reference')
-    units = "mm/day"
+    units = "mm d-1"
 case('management_irrigation_method')
     units = "enumeration"
 case('plant_stress_water')
@@ -578,10 +579,10 @@ case('plant_root_depth')
     units = "m"
 case('air_transpiration')
     units = "mm"
-case('air_evaporation~transpiration_plants')
+case('air_evapotranspiration~plants')
     units = "mm"
 case('plant_biomass_potential')
-    units = "tonnes/ha"
+    units = "t ha-1"
 case('management_irrigation_amount')
     units = "mm"
 case('soil_water_actual_layer-1','soil_water_actual_layer-2','soil_water_actual_layer-3', &
@@ -604,9 +605,9 @@ case('management_bund-height')
     units = "m"
 case('management_weed-cover')
     units = "%"
-case('water~ground_depth')
+case('groundwater__depth')
     units = 'm'
-case('water~ground_electrical-conductivity')
+case('groundwater__ec')
     units = 'dS m-1'
 case default
     units = "-"
@@ -622,6 +623,7 @@ class(bmi_aquacrop), intent(in) :: this
 character(len=*), intent(in) :: name
 integer, intent(out) :: size
 integer :: bmi_status
+character(len=BMI_MAX_VAR_NAME) :: resolved
 
 size = c_sizeof(0.0d0)
 
@@ -790,7 +792,7 @@ case('air_transpiration')
     ! Phase 4 addition: Water use by crop
     ! Value: Cumulative mm of water transpired
     dest(1) = real(GetSumWaBal_Tact(), c_double)
-case('air_evaporation~transpiration_plants')
+case('air_evapotranspiration~plants')
     ! Get cumulative actual evapotranspiration (E + Tr)
     ! Phase 4 addition: Total water loss from field
     ! Value: Cumulative mm (soil evaporation + crop transpiration)
@@ -1062,11 +1064,11 @@ case('soil__water_content_in_layers')
     end do
     bmi_status = BMI_SUCCESS
     return
-case('water~ground_depth')
+case('groundwater__depth')
     call SetZiAqua(int(src(1) * 100.0d0))
     bmi_status = BMI_SUCCESS
     return
-case('water~ground_electrical-conductivity')
+case('groundwater__ec')
     call SetECiAqua(real(src(1), dp))
     bmi_status = BMI_SUCCESS
     return

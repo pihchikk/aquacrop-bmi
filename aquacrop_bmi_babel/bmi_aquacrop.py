@@ -945,7 +945,8 @@ class BmiAquaCrop(Bmi):
             project.write_fertility_management_file(fertility_stress)
             if isinstance(data.gwt_depth, list):
                 project.write_gwt_file(gwt_series=[
-                    {"day": e.day, "depth": e.depth, "ec": e.ec} for e in data.gwt_depth])
+                    {"day": e.day, "depth": e.depth, "ec": e.ec} for e in data.gwt_depth
+                ])
             else:
                 project.write_gwt_file(depth=data.gwt_depth, ec=data.gwt_ec)
             project.write_soil_file(soil_params)

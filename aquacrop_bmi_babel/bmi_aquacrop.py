@@ -900,6 +900,12 @@ class BmiAquaCrop(Bmi):
         point = self._normalize_point(data.point)
         
         if data.weather_raw:
+            expected_days = (season.simulation_end - season.simulation_start).days + 1
+            if len(data.weather_raw) < expected_days:
+                raise ValueError(
+                    f"weather_raw has {len(data.weather_raw)} days, "
+                    f"simulation needs {expected_days}"
+                )
             weather_data = calculate_et0_from_raw(
                 latitude=point.latitude,
                 altitude=point.altitude,

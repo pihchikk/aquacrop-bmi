@@ -347,10 +347,23 @@ class GwtEntry(BaseModel):
     ec: float = 0.0
 
 
+class WeatherDayRaw(BaseModel):
+    date: str
+    t2m: float
+    tmin: float
+    tmax: float
+    wind_2m: float
+    pressure: float
+    humidity: float
+    solar_rad: float
+    precip: float
+
+
 class InputBase(BaseModel):
     gwt_depth: Annotated[float | list[GwtEntry], Field(description='Уровень грунтовых вод, м')]
     gwt_ec: Annotated[float, Field(description='Электропроводность грунтовых вод')]
     point: Point | Point3D
+    weather_raw: list[WeatherDayRaw] | None = None
 
 
 

@@ -118,6 +118,34 @@ def dump_crop_file(
 
 
 
+def weather_raw_to_power_format(records: list[dict]) -> dict:
+    mapping = {
+        'T2M': 't2m',
+        'T2M_MIN': 'tmin',
+        'T2M_MAX': 'tmax',
+        'WS2M': 'wind_2m',
+        'PS': 'pressure',
+        'RH2M': 'humidity',
+        'ALLSKY_SFC_SW_DWN': 'solar_rad',
+        'PRECTOTCORR': 'precip',
+    }
+    result = {param: {} for param in mapping}
+    for rec in records:
+        date_str = rec['date']
+        for power_key, rec_key in mapping.items():
+            result[power_key][date_str] = rec[rec_key]
+    return result
+
+
+def calculate_et0_from_raw(
+    latitude: float,
+    altitude: float,
+    records: list[dict],
+) -> np.recarray:
+    data = weather_raw_to_power_format(records)
+    return _calculate_et0_fao56(latitude, altitude, data)
+
+
 def _calculate_et0_fao56(
     latitude: float,
     altitude: float,

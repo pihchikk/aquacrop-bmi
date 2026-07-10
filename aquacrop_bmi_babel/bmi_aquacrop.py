@@ -28,8 +28,8 @@ from SALib.sample import sobol
 
 from .project import AquacropProject
 from .util import (
-    loads_crop_file, get_weather_data, get_elevation, 
-    dump_crop_file
+    loads_crop_file, get_weather_data, get_elevation,
+    dump_crop_file, calculate_et0_from_raw,
 )
 from .soil_texture import get_soil_params
 from .validation import validate_all, AquaCropValidationError
@@ -908,10 +908,23 @@ class BmiAquaCrop(Bmi):
         season = self._fix_season_dates(season, crop_params)
         point = self._normalize_point(data.point)
         
-        weather_data = get_weather_data(
-            point.latitude, point.longitude, point.altitude,
-            season.simulation_start, season.simulation_end
-        )
+        if data.weather_raw:
+            expected_days = (season.simulation_end - season.simulation_start).days + 1
+            if len(data.weather_raw) < expected_days:
+                raise ValueError(
+                    f"weather_raw has {len(data.weather_raw)} days, "
+                    f"simulation needs {expected_days}"
+                )
+            weather_data = calculate_et0_from_raw(
+                latitude=point.latitude,
+                altitude=point.altitude,
+                records=[w.model_dump() for w in data.weather_raw],
+            )
+        else:
+            weather_data = get_weather_data(
+                point.latitude, point.longitude, point.altitude,
+                season.simulation_start, season.simulation_end,
+            )
         
         soil_params = get_soil_params(soil)
 

@@ -33,6 +33,8 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      BMI_Tmax_override_value, &
                      BMI_Rain_override_value, &
                      BMI_ETo_override_value, &
+                     BMI_has_Infil_override, &
+                     BMI_Infil_override_value, &
                      SetZiAqua, SetECiAqua
 use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
                   GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
@@ -143,7 +145,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 14
+integer, parameter :: input_item_count = 15
 integer, parameter :: output_item_count = 23
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
@@ -161,7 +163,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'management_weed-cover                ', &
     'bmi__clear_weather_overrides         ', &
     'groundwater__depth                   ', &
-    'groundwater__ec                      ' &
+    'groundwater__ec                      ', &
+    'soil_water__infiltration_amount      ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -580,6 +583,8 @@ case('groundwater__depth')
     units = 'm'
 case('groundwater__ec')
     units = 'dS m-1'
+case('soil_water__infiltration_amount')
+    units = 'mm'
 case default
     units = "-"
 end select
@@ -993,7 +998,13 @@ case('bmi__clear_weather_overrides')
         BMI_has_Tmax_override = .false.
         BMI_has_Rain_override = .false.
         BMI_has_ETo_override = .false.
+        BMI_has_Infil_override = .false.
     end if
+    bmi_status = BMI_SUCCESS
+    return
+case('soil_water__infiltration_amount')
+    BMI_Infil_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_Infil_override = .true.
     bmi_status = BMI_SUCCESS
     return
 case('groundwater__depth')

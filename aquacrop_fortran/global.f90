@@ -1078,6 +1078,8 @@ real(dp) :: BMI_Tmin_override_value = 0.0_dp
 real(dp) :: BMI_Tmax_override_value = 0.0_dp
 real(dp) :: BMI_Rain_override_value = 0.0_dp
 real(dp) :: BMI_ETo_override_value = 0.0_dp
+logical  :: BMI_has_Infil_override = .false.
+real(dp) :: BMI_Infil_override_value = 0.0_dp
 
 
 contains

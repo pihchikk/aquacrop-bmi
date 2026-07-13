@@ -38,6 +38,8 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      BMI_Tmax_override_value, &
                      BMI_Rain_override_value, &
                      BMI_ETo_override_value, &
+                     BMI_has_Infil_override, &
+                     BMI_Infil_override_value, &
                      SetZiAqua, SetECiAqua
 use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
                   GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
@@ -148,7 +150,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
     component_name = "AquaCrop"
 
 ! Exchange items
-integer, parameter :: input_item_count = 15
+integer, parameter :: input_item_count = 16
 integer, parameter :: output_item_count = 31
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
@@ -167,7 +169,8 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     'bmi__clear_weather_overrides         ', &
     'soil__water_content_in_layers        ', &
     'groundwater__depth                   ', &
-    'groundwater__ec                      ' &
+    'groundwater__ec                      ', &
+    'soil_water__infiltration_amount      ' &
     /)
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
@@ -559,6 +562,8 @@ case('plant_fertility-stress')
     units = "%"
 case('air_precipitation')
     units = "mm d-1"
+case('soil_water__infiltration_amount')
+    units = "mm"
 case('air_temperature_minimum~day')
     units = "degC"
 case('air_temperature_maximal~day')
@@ -963,6 +968,11 @@ case('air_precipitation')
     call SetRain(BMI_Rain_override_value)
     bmi_status = BMI_SUCCESS
     return
+case('soil_water__infiltration_amount')
+    BMI_Infil_override_value = real(max(0.0d0, src(1)), dp)
+    BMI_has_Infil_override = .true.
+    bmi_status = BMI_SUCCESS
+    return
 case('air_temperature_minimum~day')
     ! Set current day's minimum air temperature in degrees Celsius
     ! Phase 7: Use persistent override system
@@ -1039,6 +1049,7 @@ case('bmi__clear_weather_overrides')
         BMI_has_Tmax_override = .false.
         BMI_has_Rain_override = .false.
         BMI_has_ETo_override = .false.
+        BMI_has_Infil_override = .false.
     end if
     bmi_status = BMI_SUCCESS
     return

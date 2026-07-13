@@ -2,6 +2,8 @@ module ac_simul
 
 use ac_global, only: ActiveCells, &
                      adjustedksstotoecsw, &
+                     BMI_has_Infil_override, &
+                     BMI_Infil_override_value, &
                      BMRange, &
                      CalculateAdjustedFC, &
                      CalculateETpot, &
@@ -5500,31 +5502,38 @@ subroutine BUDGET_module(dayi, TargetTimeVal, TargetDepthVal, VirtualTimeCC, &
     ! 3. Drainage
     call calculate_drainage()
 
-    ! 4. Runoff
-    if (GetManagement_Bundheight() < 0.001_dp) then
-        call SetDaySubmerged(0)
-        if ((GetManagement_RunoffON()) .and. (GetRain() > 0.1_dp)) then
-            call calculate_runoff(GetSimulParam_RunoffDepth())
-        end if
-    end if
-
-    ! 5. Infiltration (Rain and Irrigation)
-    if ((GetRainRecord_DataType() == datatype_decadely) &
-            .or. (GetRainRecord_DataType() == datatype_monthly)) then
-        call CalculateEffectiveRainfall(SubDrain)
-    end if
-    if (((GetIrriMode() == IrriMode_Generate) &
-        .and. (GetIrrigation() < epsilon(0._dp))) &
-            .and. (TargetTimeVal_loc /= -999)) then
-        call Calculate_irrigation(SubDrain, TargetTimeVal_loc, TargetDepthVal)
-    end if
-    if (GetManagement_Bundheight() >= 0.01_dp) then
-        call calculate_surfacestorage(InfiltratedRain, InfiltratedIrrigation, &
-                                      InfiltratedStorage, ECinfilt, SubDrain, &
-                                      dayi)
+    if (BMI_has_Infil_override) then
+        call SetRunoff(0.0_dp)
+        InfiltratedRain = BMI_Infil_override_value
+        InfiltratedIrrigation = 0.0_dp
+        InfiltratedStorage = 0.0_dp
     else
-        call calculate_Extra_runoff(InfiltratedRain, InfiltratedIrrigation, &
-                                    InfiltratedStorage, SubDrain)
+        ! 4. Runoff
+        if (GetManagement_Bundheight() < 0.001_dp) then
+            call SetDaySubmerged(0)
+            if ((GetManagement_RunoffON()) .and. (GetRain() > 0.1_dp)) then
+                call calculate_runoff(GetSimulParam_RunoffDepth())
+            end if
+        end if
+
+        ! 5. Infiltration (Rain and Irrigation)
+        if ((GetRainRecord_DataType() == datatype_decadely) &
+                .or. (GetRainRecord_DataType() == datatype_monthly)) then
+            call CalculateEffectiveRainfall(SubDrain)
+        end if
+        if (((GetIrriMode() == IrriMode_Generate) &
+            .and. (GetIrrigation() < epsilon(0._dp))) &
+                .and. (TargetTimeVal_loc /= -999)) then
+            call Calculate_irrigation(SubDrain, TargetTimeVal_loc, TargetDepthVal)
+        end if
+        if (GetManagement_Bundheight() >= 0.01_dp) then
+            call calculate_surfacestorage(InfiltratedRain, InfiltratedIrrigation, &
+                                          InfiltratedStorage, ECinfilt, SubDrain, &
+                                          dayi)
+        else
+            call calculate_Extra_runoff(InfiltratedRain, InfiltratedIrrigation, &
+                                        InfiltratedStorage, SubDrain)
+        end if
     end if
     call calculate_infiltration(InfiltratedRain, InfiltratedIrrigation, &
                                 InfiltratedStorage, SubDrain)

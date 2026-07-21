@@ -17,6 +17,10 @@ class CropRef(Enum):
     Sunflower = 'Sunflower'
     Tomato = 'Tomato'
     Wheat = 'Wheat'
+    WheatAgata = 'WheatAgata'
+    WheatLiza = 'WheatLiza'
+    WheatLubava = 'WheatLubava'
+    WheatZlata = 'WheatZlata'
 
 
 

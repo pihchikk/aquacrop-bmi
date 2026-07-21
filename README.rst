@@ -59,29 +59,10 @@ Basic Example::
     
     model.finalize()
 
-New in v0.2.1
+New in v0.2.20
 =============
 
-Initialize from JSON string::
-
-    import json
-    from aquacrop_bmi_babel import AquaCrop
-    
-    config = {
-        "gwt_depth": 5.0,
-        "point": {"latitude": 39.9, "longitude": -105.2},
-        "seasons": [{"planting_date": "2020-05-01"}],
-        "crop_file": "MaizeGDD",
-        "soils": [[{"thickness": 200.0, "sat": 0.50}]]
-    }
-    
-    model = AquaCrop()
-    model.initialize_from_dict(config)
-
-WSL Support::
-
-    # Works with Windows paths in WSL
-    model.initialize("/mnt/d/projects/scenario.json")
+TBA
 
 Links
 =====

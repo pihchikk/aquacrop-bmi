@@ -6,8 +6,8 @@
     "full_name": "AquaCrop-BMI",
     "short_name": "AquaCrop",
     "authors": ["Pihchikk"],
-    "version": "0.2.19",
-    "last_update": "2026-07-13",
+    "version": "0.2.20",
+    "last_update": "2026-07-21",
     "model_type": [
       "deterministic",
       "process-based",

@@ -7,7 +7,7 @@
     "short_name": "AquaCrop",
     "authors": ["Pihchikk"],
     "version": "0.3.3",
-    "last_update": "2026-06-03",
+    "last_update": "2026-07-21",
     "model_type": [
       "deterministic",
       "process-based",
@@ -15,7 +15,7 @@
       "simulation",
       "dynamic"
     ],
-    "description": "BMI wrapper for FAO AquaCrop crop water productivity model. Simulates daily crop growth, water balance, and yield response to water and environmental stress with full Basic Model Interface 2.0 compliance."
+    "description": "BMI wrapper for FAO AquaCrop crop water productivity model. Simulates daily crop growth, water balance, and yield response to water and environmental stress with full Basic Model Interface 2.0 compliance. Coupling edition"
   },
 
   "policy": {

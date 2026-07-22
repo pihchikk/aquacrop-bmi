@@ -56,7 +56,7 @@ use ac_global, only:    AdjustSizeCompartments, &
                         GetCrop_GDtranspLow, &
                         GetCrop_GDtranspLow, &
                         GetCrop_HI, &
-                        GetCrop_KcDecline, &
+                        GetCrop_KcDeclineCumul, &
                         GetCrop_KcTop, &
                         GetCrop_Length_i, &
                         GetCrop_LengthFlowering, &
@@ -3992,7 +3992,7 @@ subroutine RelationshipsForFertilityAndSaltStress()
                                   GetCrop_CCo(), GetCrop_CCx(), &
                                   GetCrop_CGC(), GetCrop_GDDCGC(), &
                                   GetCrop_CDC(), GetCrop_GDDCDC(), &
-                                  GetCrop_KcTop(), GetCrop_KcDecline(), &
+                                  GetCrop_KcTop(), GetCrop_KcDeclineCumul(), &
                                   real(GetCrop_CCEffectEvapLate(), kind= dp), &
                                   GetCrop_Tbase(), &
                                   GetCrop_Tupper(), GetSimulParam_Tmin(), &
@@ -4056,7 +4056,7 @@ subroutine RelationshipsForFertilityAndSaltStress()
                                   GetCrop_CCo(), GetCrop_CCx(), &
                                   GetCrop_CGC(), GetCrop_GDDCGC(), &
                                   GetCrop_CDC(), GetCrop_GDDCDC(), &
-                                  GetCrop_KcTop(), GetCrop_KcDecline(), &
+                                  GetCrop_KcTop(), GetCrop_KcDeclineCumul(), &
                                   real(GetCrop_CCEffectEvapLate(), kind=dp),  &
                                   GetCrop_Tbase(), GetCrop_Tupper(), &
                                   GetSimulParam_Tmin(), GetSimulParam_Tmax(), &
@@ -4913,7 +4913,7 @@ subroutine InitializeSimulationRunPart1()
             GetCrop_GDDaysToFullCanopy(), GetCrop_GDDaysToSenescence(), &
             GetCrop_GDDaysToHarvest(), GetCrop_CCo(), GetCrop_CCx(), &
             GetCrop_CGC(), GetCrop_GDDCGC(), GetCrop_CDC(), GetCrop_GDDCDC(), &
-            GetCrop_KcTop(), GetCrop_KcDecline(), real(GetCrop_CCEffectEvapLate(),kind=dp), &
+            GetCrop_KcTop(), GetCrop_KcDeclineCumul(), real(GetCrop_CCEffectEvapLate(),kind=dp), &
             GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), &
             GetSimulParam_Tmax(), GetCrop_GDtranspLow(), GetCO2i(), &
             GetCrop_ModeCycle()))

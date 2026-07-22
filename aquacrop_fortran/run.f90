@@ -4394,6 +4394,10 @@ subroutine FinalizeRun2(NrRun, TheProjectType)
             write(StrNr, '(i0)') NrRun
         end if
 
+        ! KNOWN ISSUE (low priority, narrow trigger): no case default here.
+        ! If TheProjectType is neither PRO nor PRM, totalnameEvalStat is read
+        ! uninitialized below. Same missing-case-default shape as NrRuns in
+        ! RunSimulation above; flagged by -Wmaybe-uninitialized.
         select case (TheProjectType)
         case(typeproject_typepro)
             totalnameEvalStat = GetPathNameOutp() // GetOutputName() // 'PROevaluation.OUT'
@@ -6786,6 +6790,12 @@ subroutine AdvanceOneTimeStep(WPi)
                 alfaHIAdj_temp, TESTVAL
     logical :: WaterTableInProfile_temp, NoMoreCrop_temp
 
+    ! HarvestNow is read (via InitializeTransferAssimilates at step 8) before
+    ! step 13 sets it for real; without this it's an uninitialized read whose
+    ! value depends on stack contents left by the caller, which differs
+    ! between the console daily loop and the BMI update() call chain.
+    HarvestNow = .false.
+
     ! 1. Get ETo
     if (GetEToFile() == '(None)') then
         call SetETo(5.0_dp)
@@ -7827,6 +7837,14 @@ subroutine RunSimulation(TheProjectFile_, TheProjectType)
 
     call InitializeSimulation(TheProjectFile_, TheProjectType)
 
+    ! KNOWN ISSUE (low priority, console-path only): no case default here.
+    ! If TheProjectType is ever neither PRO nor PRM (e.g. project-type
+    ! handling gets extended), NrRuns is read uninitialized by the loop
+    ! bound below. Narrow trigger (malformed/unsupported project type),
+    ! not currently reachable from a valid GetProjectType() result, but
+    ! flagged here since -Wmaybe-uninitialized catches it and a missing
+    ! case default on a loop bound is the kind of thing that turns into a
+    ! hard-to-diagnose crash if this ever gets extended.
     select case (TheProjectType)
     case(typeproject_TypePRO)
         NrRuns = 1

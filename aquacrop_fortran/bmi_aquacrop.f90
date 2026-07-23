@@ -801,7 +801,7 @@ case('air_evapotranspiration~plants')
     ! Get cumulative actual evapotranspiration (E + Tr)
     ! Phase 4 addition: Total water loss from field
     ! Value: Cumulative mm (soil evaporation + crop transpiration)
-    dest(1) = real(GetSumWaBal_Eact(), c_double)
+    dest(1) = real(GetSumWaBal_Eact() + GetSumWaBal_Tact(), c_double)
 case('plant_biomass_potential')
     ! Get potential biomass without stress
     ! Phase 4 addition: Biomass production if no stress

@@ -42,6 +42,8 @@ use ac_global, only: ActiveCells, &
                      GetCompartment_i, &
                      GetCompartment_Layer, &
                      GetCompartment_Salt, &
+                     GetCompartment_SinkMajor, &
+                     GetCompartment_SinkMinor, &
                      GetCompartment_Smax, &
                      GetCompartment_theta, &
                      GetCompartment_Thickness, &
@@ -293,6 +295,8 @@ use ac_global, only: ActiveCells, &
                      SetCompartment_fluxout, &
                      SetCompartment_i, &
                      SetCompartment_Salt, &
+                     SetCompartment_SinkMajor, &
+                     SetCompartment_SinkMinor, &
                      SetCompartment_theta, &
                      SetCompartment_WFactor, &
                      SetCrop_CCoAdjusted, &
@@ -1167,6 +1171,7 @@ subroutine calculate_transpiration(Tpot, Coeffb0Salt, Coeffb1Salt, Coeffb2Salt)
     real(dp) :: TpotMAX, RedFact, RedFactECsw
     real(dp) :: Wrel, WrelSalt, pStomatLLAct, crop_pActStom_tmp
     real(dp) :: CompiECe, CompiECsw, CompiECswFC
+    real(dp) :: TheSum, TheRatio, TheResidue
     logical :: SWCtopSoilConsidered_temp
     type(CompartmentIndividual), dimension(max_No_compartments) :: Comp_temp
     type(CompartmentIndividual) :: Compi_temp
@@ -1253,6 +1258,7 @@ subroutine calculate_transpiration(Tpot, Coeffb0Salt, Coeffb1Salt, Coeffb2Salt)
         call SetCompartment(Comp_temp)
         compi = 0
         pre_layer = 0
+        TheSum = 0._dp
         loop: do
             compi = compi + 1
             layeri = GetCompartment_Layer(compi)
@@ -1308,21 +1314,65 @@ subroutine calculate_transpiration(Tpot, Coeffb0Salt, Coeffb1Salt, Coeffb2Salt)
                 call Correction_Anaeroby(Compi_temp, alfa)
                 call SetCompartment_i(compi, Compi_temp)
             end if
-            ! 2.c extract water
-            sinkMM = 1000._dp * (alfa * GetCompartment_WFactor(compi) * &
-                    GetCompartment_Smax(compi)) * GetCompartment_Thickness(compi)
-            WtoExtract = TpotMAX-GetTact()
-            if (WtoExtract < sinkMM) then
-                sinkMM = WtoExtract
+            ! 2.c determine maximum extration amount (mm) in current root zone
+            ! maximum possible (with current water stress)
+            call SetCompartment_SinkMajor(compi, 1000 * (alfa * GetCompartment_WFactor(compi) * &
+                GetCompartment_Smax(compi)) * GetCompartment_Thickness(compi))
+            ! Sum of maximum possible (without any water stress)
+            if (GetCompartment_WFactor(compi) > 0.00001) then
+                TheSum = TheSum + 1000 * (GetCompartment_WFactor(compi) * GetCompartment_Smax(compi)) * &
+                         GetCompartment_Thickness(compi)
             end if
-            call SetCompartment_theta(compi, GetCompartment_theta(compi) &
-                 - sinkMM/(1000._dp*GetCompartment_Thickness(compi)* &
-                 (1._dp - GetSoilLayer_GravelVol(layeri)/100._dp)))
-            WtoExtract = WtoExtract - sinkMM
-            call SetTact(GetTact() + sinkMM)
-            if ((WtoExtract < epsilon(1._dp) .or. &
-                                    (compi == GetNrCompartments()))) exit loop
+
+            if (compi == GetNrCompartments()) exit loop
         end do loop
+
+        ! 2.d Determine required extraction considering root distribution
+        TheRatio = TpotMAX / TheSum
+
+        do compi = 1, GetNrcompartments()
+            if (GetCompartment_WFactor(compi) > 1.0E-5) then
+                call SetCompartment_SinkMinor(compi, TheRatio * 1000.0 * &
+                     GetCompartment_WFactor(compi) * GetCompartment_Smax(compi) * &
+                     GetCompartment_Thickness(compi))
+            else
+                call SetCompartment_SinkMinor(compi, 0._dp)
+            end if
+        end do
+
+        ! 2.e Extract water
+        TheResidue = 0.0
+        WtoExtract = TpotMAX
+
+        do compi = 1, GetNrcompartments()
+            if ((GetCompartment_SinkMinor(compi) > 1.0E-5) .and. (WtoExtract > 1.0E-5)) then
+                if (GetCompartment_SinkMinor(compi) < GetCompartment_SinkMajor(compi)) then
+                    if ((GetCompartment_SinkMinor(compi) + TheResidue) > GetCompartment_SinkMajor(compi)) then
+                        TheResidue = TheResidue - (GetCompartment_SinkMajor(compi) - GetCompartment_SinkMinor(compi))
+                        sinkMM = GetCompartment_SinkMajor(compi)
+                    else
+                        sinkMM = GetCompartment_SinkMinor(compi) + TheResidue
+                        TheResidue = 0.0
+                    end if
+                else
+                    sinkMM = GetCompartment_SinkMajor(compi)
+                    TheResidue = TheResidue + (GetCompartment_SinkMinor(compi) - GetCompartment_SinkMajor(compi))
+                end if
+
+                ! Extract water
+                WtoExtract = TpotMAX - GetTact()
+                if (WtoExtract < sinkMM) then
+                    sinkMM = WtoExtract
+                end if
+
+                call SetCompartment_theta(compi, GetCompartment_theta(compi) - &
+                     sinkMM / (1000._dp * GetCompartment_Thickness(compi) * &
+                     (1.0 - GetSoilLayer_GravelVol(layeri) / 100._dp)))
+
+                WtoExtract = WtoExtract - sinkMM
+                call SetTact(GetTact() + sinkMM)
+            end if
+        end do
 
 
         ! 3. add net irrigation water requirement

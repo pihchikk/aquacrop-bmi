@@ -121,8 +121,16 @@ def get_soil_params(layers: list[SoilLayer]) -> list[SoilLayerParams]:
     for (
         ind,
         (sand, _silt, clay),
-        (th_r, sat, log10alpha, log10npar, log10ksat),
+        vg_row,
     ) in zip(with_texture_ind, soildata, van_genuchten_params, strict=True):
+        # Rosetta returns the Van Genuchten-Mualem parameters as the first
+        # five values of each row, in the canonical order
+        # [theta_r, theta_s, log10(alpha), log10(n), log10(Ksat)]. The live
+        # handbook60.org/api/v1/rosetta/3 endpoint now appends extra trailing
+        # fields (7 values/row rather than 5), so take the first five
+        # explicitly instead of unpacking the whole row -- robust to any
+        # further additions.
+        th_r, sat, log10alpha, log10npar, log10ksat = vg_row[:5]
         alpha: float = 10.0 ** log10alpha
         npar: float = 10.0 ** log10npar
         ksat = 10.0 ** log10ksat

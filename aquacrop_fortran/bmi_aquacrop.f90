@@ -46,7 +46,7 @@ use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
                   GetSumWaBal_Tact, GetSumWaBal_Eact, GetSumWaBal_BiomassPot, & ! Phase 4
                   GetPreviousSum_Irrigation, SetPreviousSum_Irrigation, & ! Phase 2
                   GetCO2i, SetCO2i ! Phase 6: CO2 concentration
-use ac_startunit, only: BMI_InitializeAquaCrop, BMI_FinalizeAquaCrop
+use ac_startunit, only: BMI_InitializeAquaCrop, BMI_FinalizeAquaCrop, bmi_project_dir
 use bmif_2_0
 use, intrinsic :: iso_c_binding, only: c_ptr, c_loc, c_f_pointer, c_double, &
                                         c_int, c_float, c_char, c_sizeof
@@ -381,10 +381,23 @@ function aquacrop_finalize(this) result(bmi_status)
 class(bmi_aquacrop), intent(inout) :: this
 integer :: bmi_status
 integer :: aquacrop_status
+character(len=1025) :: caller_cwd
+integer :: cstat
+
+! FinalizeTheProgram (upstream startunit.F90:930) writes AllDone.OUT via a
+! relative-path open() with no iostat=; if finalize() runs from a cwd other
+! than the project dir that open() fails and gfortran aborts the whole
+! process (exit 2), uncatchable from Python. Restore the project dir that
+! init captured, run cleanup, then return the caller to its original cwd.
+caller_cwd = ''
+call getcwd(caller_cwd)
+if (len_trim(bmi_project_dir) > 0) cstat = chdir(trim(bmi_project_dir))
 
 ! Call AquaCrop cleanup
 ! This closes files, deallocates memory, writes final outputs
 call BMI_FinalizeAquaCrop(aquacrop_status)
+
+if (len_trim(caller_cwd) > 0) cstat = chdir(trim(caller_cwd))
 
 ! Update BMI state
 this%finalized = .true.

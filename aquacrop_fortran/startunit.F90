@@ -304,6 +304,12 @@ character(len=1024), dimension(:), allocatable :: ProjectFileNames
 
     !! Names of the project file(s)
 
+character(len=1025), save :: bmi_project_dir = ''
+    !! BMI wrapper only; absolute project dir captured at init so
+    !! finalize can chdir back before FinalizeTheProgram's relative-path
+    !! open() (upstream startunit.F90:930 pattern) would otherwise abort
+    !! when finalize() runs from a caller cwd other than the project dir.
+
 
 
 
@@ -2251,6 +2257,13 @@ subroutine BMI_InitializeAquaCrop(config_file, status)
         print *, "New working directory: '", trim(working_dir), "'"
 
         print *, ""
+
+        ! BMI wrapper only: persist the absolute project dir so finalize()
+        ! can chdir back before FinalizeTheProgram's relative-path open().
+        ! Init deliberately does not restore cwd (the Python/Cython layer
+        ! does), and base_path is a local, so this module-level save is
+        ! the only place the project dir survives to finalize.
+        bmi_project_dir = trim(working_dir)
 
     end if
 

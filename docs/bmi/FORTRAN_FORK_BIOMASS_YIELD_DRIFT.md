@@ -170,16 +170,61 @@ this investigation's explicit stop-criteria ("a decision that changes
 physical interpretation"), implementation was deliberately not
 attempted without review, rather than porting it autonomously.
 
+## Scope correction: NOT GDD-mode-specific — gated purely on calibrated fertility stress
+
+The exact gating condition, read directly from source
+(`run.f90:4883-4884`, identical structure in both trees):
+
+```fortran
+if ((GetCrop_StressResponse_Calibrated() .eqv. .true.) .and. &
+    (GetManagement_FertilityStress() > 0_int32)) then
+    call SetSumKcTop(SeasonalSumOfKcPot(...))
+```
+
+This has nothing to do with crop-cycle mode (GDD vs. calendar-days). It
+was initially suspected to be GDD-mode-specific because the only
+crop/fertility-stress combination tested so far was
+Ottawa/`AlfOttawaGDD.CRO` (GDD mode). **That suspicion was wrong.**
+Tested directly (Ottawa climate/soil base, fertility_stress swapped
+0 -> 50 to actually engage the gate — the fork's own bundled crop
+library defaults to fertility_stress=0, which trivially bypasses this
+code path regardless of crop):
+
+| Scenario | Cycle mode | fertility_stress | Result |
+|---|---|---|---|
+| Ottawa / `AlfOttawaGDD.CRO` | GDD | 50 (bundled default) | FAIL — 496 diff lines |
+| Ottawa / `Wheat.CRO` | calendar-days | 0 (bundled default) | PASS — byte-identical |
+| Ottawa / `Maize.CRO` | calendar-days | 0 (bundled default) | PASS — byte-identical |
+| Ottawa / `Potato.CRO` | calendar-days | 0 (bundled default) | PASS — byte-identical |
+| Ottawa / `SugarBeet.CRO` | calendar-days | 0 (bundled default) | PASS — byte-identical |
+| Ottawa / `Wheat.CRO` | calendar-days | **50 (forced)** | **FAIL — 125 diff lines, max field diff 3.0** |
+| Ottawa / `Maize.CRO` | calendar-days | **50 (forced)** | **FAIL — 126 diff lines, max field diff 3.9** |
+| Ottawa / `Potato.CRO` | calendar-days | **50 (forced)** | **FAIL — 118 diff lines, max field diff 1.0** |
+| Ottawa / `SugarBeet.CRO` | calendar-days | **50 (forced)** | **FAIL — 121 diff lines, max field diff 1.0** |
+
+The pattern is unambiguous: every crop passes at fertility_stress=0 and
+fails once fertility_stress>0 is engaged, **regardless of calendar-days
+vs. GDD cycle mode**. All 14 of the fork's bundled crop files default to
+fertility_stress=0 in isolation (that setting lives in the management
+file, not the crop file), which is why this was not caught by any
+default/out-of-the-box scenario — it requires a user to actually enable
+calibrated soil-fertility-stress management, which the bundled Ottawa
+fixture happens to do for its one GDD crop.
+
+**Practical implication**: this affects potentially every crop in the
+fork's library, in either cycle mode, whenever calibrated fertility
+stress is active — a substantially larger blast radius than the
+GDD-mode-only framing this document originally carried.
+
 ## Severity
 
-**MEDIUM, now that mechanism is known** (revised from "TBD" — enough is
-now understood to assess this, unlike the earlier undiagnosed state).
+**MEDIUM-HIGH, revised again after the scope correction above.**
 Bounded, monotonic, ~1-2.5% relative effect on Biomass/Yield/CC over a
-multi-year run in the one fixture tested; not a crash, NaN, or sign
-error. But it is systematic (affects every GDD-mode crop cycle that
-reaches this code path, not an edge case) and affects exactly the kind
-of season-long potential-biomass baseline that calibration and
-yield-prediction use cases would care about most.
+multi-year run in the fixtures tested (not a crash, NaN, or sign
+error) — but the trigger condition (calibrated fertility stress active)
+is a mainstream, commonly-used feature, not an edge case, and is
+independent of crop or cycle mode. Any user running calibrated
+fertility-stress scenarios on any bundled crop is affected.
 
 ## What remains undone
 
@@ -188,8 +233,10 @@ yield-prediction use cases would care about most.
   any bundled scenario (if not, that specific gap is lower priority).
 - Not checked whether the second `TCropReference.SIM` read site
   (`global.f90:5538`) has the same or a related gap.
-- Not checked whether calendar-days-mode crops (not just this GDD-mode
-  fixture) reach the same code path with the same effect.
+- Magnitude not yet checked across the full crop set — the four
+  additional crops above were checked for pass/fail and rough max-diff
+  only, not the detailed per-variable breakdown (first-divergence day,
+  relative %) done for Ottawa/alfalfa.
 - BMI-path-specificity not checked (low priority — shared `global.f90`/
   `run.f90` physics, same pattern as every other fork defect in this
   project; console and BMI wrapper reach it identically).

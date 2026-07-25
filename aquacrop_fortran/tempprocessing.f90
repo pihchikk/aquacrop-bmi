@@ -4,6 +4,25 @@ use ac_global , only: undef_int, &
                       modeCycle_GDDays, &
                       modeCycle_CalendarDays, &
                       DaysinMonth, &
+                      CO2Ref, &
+                      GetTnxReferenceFile, &
+                      GetTnxReferenceFileFull, &
+                      SetTnxReferenceFile, &
+                      SetTnxReferenceFileFull, &
+                      GetTnxReferenceYear, &
+                      SetTnxReferenceYear, &
+                      GetTminCropReferenceRun_i, &
+                      GetTmaxCropReferenceRun_i, &
+                      SetTminCropReferenceRun_i, &
+                      SetTmaxCropReferenceRun_i, &
+                      GetTminTnxReference365DaysRun_i, &
+                      GetTmaxTnxReference365DaysRun_i, &
+                      SetTminTnxReference365DaysRun_i, &
+                      SetTmaxTnxReference365DaysRun_i, &
+                      GetTminTnxReference12MonthsRun_i, &
+                      GetTmaxTnxReference12MonthsRun_i, &
+                      SetTminTnxReference12MonthsRun_i, &
+                      SetTmaxTnxReference12MonthsRun_i, &
                       rep_DayEventDbl, &
                       rep_CropFileSet, &
                       rep_EffectStress, &
@@ -267,7 +286,8 @@ use ac_kinds,  only: dp, &
                      int8, &
                      int16, &
                      int32, &
-                     intEnum
+                     intEnum, &
+                     sp
 use ac_project_input, only: ProjectInput
 use ac_utils, only: roundc
 use iso_fortran_env, only: iostat_end
@@ -866,6 +886,91 @@ subroutine GetMonthlyTemperatureDataSet(DayNri, TminDataSet, TmaxDataSet)
         c = (11._dp*C1-7._dp*C2+2._dp*C3)/(6._dp*30._dp)
     end subroutine GetInterpolationParameters
 end subroutine GetMonthlyTemperatureDataSet
+
+
+subroutine GetMonthlyTemperatureDataSetFromTnxReferenceFile(Monthi, TminDataSet, TmaxDataSet)
+    integer(int32), intent(in) :: Monthi
+    type(rep_DayEventDbl), dimension(31) , intent(inout) :: TminDataSet
+    type(rep_DayEventDbl), dimension(31) , intent(inout) :: TmaxDataSet
+
+    integer(int32) :: Dayi, DayN
+    integer(int32) :: DNR
+    integer(int32) :: t1, t2, ni
+    real(dp) :: C1Min, C2Min, C3Min
+    real(dp) :: C1Max, C2Max, C3Max
+    real(dp) :: aOver3Min, bOver2Min, cMin
+    real(dp) :: aOver3Max, bOver2Max, cMax
+
+    ni=30
+
+    if (Monthi == 1) then
+        C1Min = GetTminTnxReference12MonthsRun_i(12)
+        C1Max = GetTmaxTnxReference12MonthsRun_i(12)
+    else
+        C1Min = GetTminTnxReference12MonthsRun_i(Monthi-1)
+        C1Max = GetTmaxTnxReference12MonthsRun_i(Monthi-1)
+    end if
+    C2Min = GetTminTnxReference12MonthsRun_i(Monthi)
+    C2Max = GetTmaxTnxReference12MonthsRun_i(Monthi)
+    if (Monthi == 12) then
+        C3Min = GetTminTnxReference12MonthsRun_i(1)
+        C3Max = GetTmaxTnxReference12MonthsRun_i(1)
+    else
+        C3Min = GetTminTnxReference12MonthsRun_i(Monthi+1)
+        C3Max = GetTmaxTnxReference12MonthsRun_i(Monthi+1)
+    end if
+
+    C1Min = C1Min*ni
+    C1Max = C1Max*ni
+    C2Min = C2Min*ni
+    C2Max = C2Max*ni
+    C3Min = C3Min*ni
+    C3Max = C3Max*ni
+
+    call DetermineDayNr(1, Monthi, 1901, DNR)
+    DayN = DaysInMonth(Monthi)
+
+    call GetInterpolationParameters(C1Min, C2Min, C3Min, &
+                   aOver3Min, bOver2Min, cMin)
+    call GetInterpolationParameters(C1Max, C2Max, C3Max, &
+                   aOver3Max, bOver2Max, cMax)
+
+    t1 = 30
+    do Dayi = 1, DayN
+        t2 = t1 + 1
+        TminDataSet(Dayi)%DayNr = DNR+Dayi-1
+        TmaxDataSet(Dayi)%DayNr = DNR+Dayi-1
+        TminDataSet(Dayi)%Param = aOver3Min*(t2*t2*t2-t1*t1*t1) &
+            + bOver2Min*(t2*t2-t1*t1) + cMin*(t2-t1)
+        TmaxDataSet(Dayi)%Param = aOver3Max*(t2*t2*t2-t1*t1*t1) &
+            + bOver2Max*(t2*t2-t1*t1) + cMax*(t2-t1)
+        t1 = t2
+    end do
+    do Dayi = (DayN+1), 31 ! Give to remaining days (day 29,30 or 31) the DayNr of the last day of the month
+        TminDataSet(Dayi)%DayNr = DNR+DayN-1
+        TmaxDataSet(Dayi)%DayNr = DNR+DayN-1
+        TminDataSet(Dayi)%Param = 0._dp
+        TmaxDataSet(Dayi)%Param = 0._dp
+    end do
+
+    contains
+
+
+    subroutine GetInterpolationParameters(C1, C2, C3, &
+                          aOver3, bOver2, c)
+        real(dp), intent(in) :: C1
+        real(dp), intent(in) :: C2
+        real(dp), intent(in) :: C3
+        real(dp), intent(inout) :: aOver3
+        real(dp), intent(inout) :: bOver2
+        real(dp), intent(inout) :: c
+
+        ! n1=n2=n3=30 --> better parabola
+        aOver3 = (C1-2._dp*C2+C3)/(6._dp*30._dp*30._dp*30._dp)
+        bOver2 = (-6._dp*C1+9._dp*C2-3._dp*C3)/(6._dp*30._dp*30._dp)
+        c = (11._dp*C1-7._dp*C2+2._dp*C3)/(6._dp*30._dp)
+    end subroutine GetInterpolationParameters
+end subroutine GetMonthlyTemperatureDataSetFromTnxReferenceFile
 
 
 integer(int32) function GrowingDegreeDays(ValPeriod, FirstDayPeriod, Tbase, &

@@ -981,6 +981,12 @@ character(len=:), allocatable :: MultipleProjectFile
 character(len=:), allocatable :: TemperatureFile
 character(len=:), allocatable :: TemperatureFileFull
 character(len=:), allocatable :: TemperatureDescription
+character(len=:), allocatable :: TnxReferenceFile
+character(len=:), allocatable :: TnxReferenceFileFull
+integer(int32) :: TnxReferenceYear
+real(sp), dimension(1:365) :: TmaxCropReferenceRun, TminCropReferenceRun
+real(sp), dimension(1:365) :: TmaxTnxReference365DaysRun, TminTnxReference365DaysRun
+real(sp), dimension(1:12) :: TmaxTnxReference12MonthsRun, TminTnxReference12MonthsRun
 character(len=:), allocatable :: MultipleProjectFileFull
 character(len=:), allocatable :: FullFileNameProgramParameters
 character(len=:), allocatable :: ManDescription
@@ -12934,6 +12940,260 @@ subroutine SetTemperatureFile(str)
 
     TemperatureFile = str
 end subroutine SetTemperatureFile
+
+
+function GetTnxReferenceFile() result(str)
+    !! Getter for the "TnxReferenceFile" global variable.
+    character(len=:), allocatable :: str
+
+    str = TnxReferenceFile
+end function GetTnxReferenceFile
+
+
+subroutine SetTnxReferenceFile(str)
+    !! Setter for the "TnxReferenceFile" global variable.
+    character(len=*), intent(in) :: str
+
+    TnxReferenceFile = str
+end subroutine SetTnxReferenceFile
+
+
+function GetTnxReferenceFileFull() result(str)
+    !! Getter for the "TnxReferenceFileFull" global variable.
+    character(len=:), allocatable :: str
+
+    str = TnxReferenceFileFull
+end function GetTnxReferenceFileFull
+
+
+subroutine SetTnxReferenceFileFull(str)
+    !! Setter for the "TnxReferenceFileFull" global variable.
+    character(len=*), intent(in) :: str
+
+    TnxReferenceFileFull = str
+end subroutine SetTnxReferenceFileFull
+
+
+integer(int32) function GetTnxReferenceYear()
+    !! Getter for the "TnxReferenceYear" global variable.
+
+    GetTnxReferenceYear = TnxReferenceYear
+end function GetTnxReferenceYear
+
+
+subroutine SetTnxReferenceYear(TnxReferenceYear_in)
+    !! Setter for the "TnxReferenceYear" global variable.
+    integer(int32), intent(in) :: TnxReferenceYear_in
+
+    TnxReferenceYear = TnxReferenceYear_in
+end subroutine SetTnxReferenceYear
+
+
+function GetTminCropReferenceRun() result(TminCropReferenceRun_out)
+    !! Getter for the "TminCropReferenceRun" global variable.
+    real(sp), dimension(1:365) :: TminCropReferenceRun_out
+
+    TminCropReferenceRun_out = TminCropReferenceRun
+end function GetTminCropReferenceRun
+
+
+function GetTminCropReferenceRun_i(i) result(TminCropReferenceRun_i)
+    !! Getter for individual elements of the "GetTminCropReferenceRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TminCropReferenceRun_i
+
+    TminCropReferenceRun_i = TminCropReferenceRun(i)
+end function GetTminCropReferenceRun_i
+
+
+subroutine SetTminCropReferenceRun(TminCropReferenceRun_in)
+    !! Setter for the "TminCropReferenceRun" global variable.
+    real(sp), dimension(1:365), intent(in) :: TminCropReferenceRun_in
+
+    TminCropReferenceRun = TminCropReferenceRun_in
+end subroutine SetTminCropReferenceRun
+
+
+subroutine SetTminCropReferenceRun_i(i, TminCropReferenceRun_i)
+    !! Setter for individual element for the "TminCropReferenceRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TminCropReferenceRun_i
+
+    TminCropReferenceRun(i) = TminCropReferenceRun_i
+end subroutine SetTminCropReferenceRun_i
+
+! TmaxCropReferenceRun
+
+function GetTmaxCropReferenceRun() result(TmaxCropReferenceRun_out)
+    !! Getter for the "TmaxCropReferenceRun" global variable.
+    real(sp), dimension(1:365) :: TmaxCropReferenceRun_out
+
+    TmaxCropReferenceRun_out = TmaxCropReferenceRun
+end function GetTmaxCropReferenceRun
+
+
+function GetTmaxCropReferenceRun_i(i) result(TmaxCropReferenceRun_i)
+    !! Getter for individual elements of the "GetTmaxCropReferenceRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TmaxCropReferenceRun_i
+
+    TmaxCropReferenceRun_i = TmaxCropReferenceRun(i)
+end function GetTmaxCropReferenceRun_i
+
+
+subroutine SetTmaxCropReferenceRun(TmaxCropReferenceRun_in)
+    !! Setter for the "TmaxCropReferenceRun" global variable.
+    real(sp), dimension(1:365), intent(in) :: TmaxCropReferenceRun_in
+
+    TmaxCropReferenceRun = TmaxCropReferenceRun_in
+end subroutine SetTmaxCropReferenceRun
+
+
+subroutine SetTmaxCropReferenceRun_i(i, TmaxCropReferenceRun_i)
+    !! Setter for individual element for the "TmaxCropReferenceRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TmaxCropReferenceRun_i
+
+    TmaxCropReferenceRun(i) = TmaxCropReferenceRun_i
+end subroutine SetTmaxCropReferenceRun_i
+
+
+function GetTminTnxReference365DaysRun() result(TminTnxReference365DaysRun_out)
+    !! Getter for the "TminTnxReference365DaysRun" global variable.
+    real(sp), dimension(1:365) :: TminTnxReference365DaysRun_out
+
+    TminTnxReference365DaysRun_out = TminTnxReference365DaysRun
+end function GetTminTnxReference365DaysRun
+
+
+function GetTminTnxReference365DaysRun_i(i) result(TminTnxReference365DaysRun_i)
+    !! Getter for individual elements of the "GetTminTnxReference365DaysRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TminTnxReference365DaysRun_i
+
+    TminTnxReference365DaysRun_i = TminTnxReference365DaysRun(i)
+end function GetTminTnxReference365DaysRun_i
+
+
+subroutine SetTminTnxReference365DaysRun(TminTnxReference365DaysRun_in)
+    !! Setter for the "TminTnxReference365DaysRun" global variable.
+    real(sp), dimension(1:365), intent(in) :: TminTnxReference365DaysRun_in
+
+    TminTnxReference365DaysRun = TminTnxReference365DaysRun_in
+end subroutine SetTminTnxReference365DaysRun
+
+
+subroutine SetTminTnxReference365DaysRun_i(i, TminTnxReference365DaysRun_i)
+    !! Setter for individual element for the "TminTnxReference365DaysRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TminTnxReference365DaysRun_i
+
+    TminTnxReference365DaysRun(i) = TminTnxReference365DaysRun_i
+end subroutine SetTminTnxReference365DaysRun_i
+
+! TmaxTnxReference365Days
+
+function GetTmaxTnxReference365DaysRun() result(TmaxTnxReference365DaysRun_out)
+    !! Getter for the "TmaxTnxReference365DaysRun" global variable.
+    real(sp), dimension(1:365) :: TmaxTnxReference365DaysRun_out
+
+    TmaxTnxReference365DaysRun_out = TmaxTnxReference365DaysRun
+end function GetTmaxTnxReference365DaysRun
+
+
+function GetTmaxTnxReference365DaysRun_i(i) result(TmaxTnxReference365DaysRun_i)
+    !! Getter for individual elements of the "GetTmaxTnxReference365DaysRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TmaxTnxReference365DaysRun_i
+
+    TmaxTnxReference365DaysRun_i = TmaxTnxReference365DaysRun(i)
+end function GetTmaxTnxReference365DaysRun_i
+
+
+subroutine SetTmaxTnxReference365DaysRun(TmaxTnxReference365DaysRun_in)
+    !! Setter for the "TmaxTnxReference365DaysRun" global variable.
+    real(sp), dimension(1:365), intent(in) :: TmaxTnxReference365DaysRun_in
+
+    TmaxTnxReference365DaysRun = TmaxTnxReference365DaysRun_in
+end subroutine SetTmaxTnxReference365DaysRun
+
+
+subroutine SetTmaxTnxReference365DaysRun_i(i, TmaxTnxReference365DaysRun_i)
+    !! Setter for individual element for the "TmaxTnxReference365DaysRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TmaxTnxReference365DaysRun_i
+
+    TmaxTnxReference365DaysRun(i) = TmaxTnxReference365DaysRun_i
+end subroutine SetTmaxTnxReference365DaysRun_i
+
+
+function GetTminTnxReference12MonthsRun() result(TminTnxReference12MonthsRun_out)
+    !! Getter for the "TminTnxReference12MonthsRun" global variable.
+    real(sp), dimension(1:12) :: TminTnxReference12MonthsRun_out
+
+    TminTnxReference12MonthsRun_out = TminTnxReference12MonthsRun
+end function GetTminTnxReference12MonthsRun
+
+
+function GetTminTnxReference12MonthsRun_i(i) result(TminTnxReference12MonthsRun_i)
+    !! Getter for individual elements of the "GetTminTnxReference12MonthsRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TminTnxReference12MonthsRun_i
+
+    TminTnxReference12MonthsRun_i = TminTnxReference12MonthsRun(i)
+end function GetTminTnxReference12MonthsRun_i
+
+
+subroutine SetTminTnxReference12MonthsRun(TminTnxReference12MonthsRun_in)
+    !! Setter for the "TminTnxReference12MonthsRun" global variable.
+    real(sp), dimension(1:12), intent(in) :: TminTnxReference12MonthsRun_in
+
+    TminTnxReference12MonthsRun = TminTnxReference12MonthsRun_in
+end subroutine SetTminTnxReference12MonthsRun
+
+
+subroutine SetTminTnxReference12MonthsRun_i(i, TminTnxReference12MonthsRun_i)
+    !! Setter for individual element for the "TminTnxReference12MonthsRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TminTnxReference12MonthsRun_i
+
+    TminTnxReference12MonthsRun(i) = TminTnxReference12MonthsRun_i
+end subroutine SetTminTnxReference12MonthsRun_i
+
+! TmaxTnxReference12MonthsRun
+
+function GetTmaxTnxReference12MonthsRun() result(TmaxTnxReference12MonthsRun_out)
+    !! Getter for the "TmaxTnxReference12MonthsRun" global variable.
+    real(sp), dimension(1:12) :: TmaxTnxReference12MonthsRun_out
+
+    TmaxTnxReference12MonthsRun_out = TmaxTnxReference12MonthsRun
+end function GetTmaxTnxReference12MonthsRun
+
+
+function GetTmaxTnxReference12MonthsRun_i(i) result(TmaxTnxReference12MonthsRun_i)
+    !! Getter for individual elements of the "GetTmaxTnxReference12MonthsRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp) :: TmaxTnxReference12MonthsRun_i
+
+    TmaxTnxReference12MonthsRun_i = TmaxTnxReference12MonthsRun(i)
+end function GetTmaxTnxReference12MonthsRun_i
+
+
+subroutine SetTmaxTnxReference12MonthsRun(TmaxTnxReference12MonthsRun_in)
+    !! Setter for the "TmaxTnxReference12MonthsRun" global variable.
+    real(sp), dimension(1:12), intent(in) :: TmaxTnxReference12MonthsRun_in
+
+    TmaxTnxReference12MonthsRun = TmaxTnxReference12MonthsRun_in
+end subroutine SetTmaxTnxReference12MonthsRun
+
+
+subroutine SetTmaxTnxReference12MonthsRun_i(i, TmaxTnxReference12MonthsRun_i)
+    !! Setter for individual element for the "TmaxTnxReference12MonthsRun" global variable.
+    integer(int32), intent(in) :: i
+    real(sp), intent(in) :: TmaxTnxReference12MonthsRun_i
+
+    TmaxTnxReference12MonthsRun(i) = TmaxTnxReference12MonthsRun_i
+end subroutine SetTmaxTnxReference12MonthsRun_i
 
 
 function GetTemperatureFilefull() result(str)

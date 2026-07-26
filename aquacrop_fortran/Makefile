@@ -84,6 +84,7 @@ OBJ = climprocessing.o \
     inforesults.o \
     initialsettings.o \
     kinds.o \
+    preparefertilitysalinity.o \
     project_input.o \
     rootunit.o \
     run.o \
@@ -158,10 +159,18 @@ rootunit.o: rootunit.f90 \
     utils.o
 	$(FC) $(FCFLAGS) -c $< -o $@
 
+preparefertilitysalinity.o: preparefertilitysalinity.f90 \
+    global.o \
+    kinds.o \
+    tempprocessing.o \
+    utils.o
+	$(FC) $(FCFLAGS) -c $< -o $@
+
 run.o: run.f90 \
     global.o \
     inforesults.o \
     kinds.o \
+    preparefertilitysalinity.o \
     rootunit.o \
     simul.o \
     tempprocessing.o \

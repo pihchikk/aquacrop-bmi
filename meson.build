@@ -33,6 +33,7 @@ fortran_sources = files(
     'aquacrop_fortran/rootunit.f90',
     'aquacrop_fortran/simul.f90',
     'aquacrop_fortran/tempprocessing.f90',
+    'aquacrop_fortran/preparefertilitysalinity.f90',
     'aquacrop_fortran/startunit.F90',
     'aquacrop_fortran/run.f90',
     'aquacrop_fortran/bmif.f90',

@@ -1282,6 +1282,60 @@ subroutine CreateTnxReferenceFile(TemperatureFile, TnxReferenceFile, TnxReferenc
 end subroutine CreateTnxReferenceFile
 
 
+subroutine CreateTnxReference365Days()
+    !! Builds the 365-day (Onset-independent, Day-1-to-365) reference Tmin/Tmax
+    !! series from the 12 monthly means (via the 3-month parabolic interpolation
+    !! in GetMonthlyTemperatureDataSetFromTnxReferenceFile) and saves it to
+    !! TnxReference365Days.SIM plus the TminTnxReference365DaysRun/
+    !! TmaxTnxReference365DaysRun state.
+    !!
+    !! Ported verbatim from official v7.3 (tempprocessing.f90:3116-3161).
+    character(len=:), allocatable :: totalnameOUT
+    character(len=1025) :: TempString
+    integer(int32) :: DayNri
+    integer(int32) :: i, Monthi
+    type(rep_DayEventDbl), dimension(31) :: TminDataSet_temp,TmaxDataSet_temp
+    real(sp) :: Tlow, Thigh
+
+    if ((FileExists(GetTnxReferenceFileFull())) .OR. (GetTnxReferenceFile() == '(External)')) then
+        ! create SIM file
+        if (GetTnxReferenceFile() /= '(External)') then
+            totalnameOUT = trim(GetPathNameSimul()) // 'TnxReference365Days.SIM'
+            call fTnxReference365Days_open(totalnameOUT, 'w')
+        end if
+
+        ! get data set for 1st month
+        Monthi = 1
+        call GetMonthlyTemperatureDataSetFromTnxReferenceFile(Monthi, TminDataSet_temp, TmaxDataSet_temp)
+
+        ! Tnx for Day 1 to 365
+        do DayNri = 1, 365
+            if (DayNri > TminDataSet_temp(31)%DayNr) then
+                ! next month
+                Monthi = Monthi + 1
+                call GetMonthlyTemperatureDataSetFromTnxReferenceFile(Monthi, TminDataSet_temp, TmaxDataSet_temp)
+            end if
+            i = 1
+            do while (TminDataSet_temp(i)%DayNr /= DayNri)
+                i = i+1
+            end do
+            Tlow = real(roundc(100*TminDataSet_temp(i)%Param, mold=int32),kind=sp)/100._sp
+            Thigh = real(roundc(100*TmaxDataSet_temp(i)%Param, mold=int32),kind=sp)/100._sp
+            call SetTminTnxReference365DaysRun_i(DayNri,Tlow)
+            call SetTmaxTnxReference365DaysRun_i(DayNri,Thigh)
+            if (GetTnxReferenceFile() /= '(External)') then
+                write(TempString, '(2f10.2)') Tlow, Thigh
+                call fTnxReference365Days_write(trim(TempString))
+            end if
+        end do
+        if (GetTnxReferenceFile() /= '(External)') then
+            ! Close file
+            call fTnxReference365Days_close()
+        end if
+    end if
+end subroutine CreateTnxReference365Days
+
+
 integer(int32) function GrowingDegreeDays(ValPeriod, FirstDayPeriod, Tbase, &
                                           Tupper, TDayMin, TDayMax)
     integer(int32), intent(in) :: ValPeriod

@@ -40,6 +40,7 @@ use ac_global, only:    AdjustSizeCompartments, &
                         GetCrop_DaysToFullCanopy, &
                         GetCrop_DaysToGermination, &
                         GetCrop_DaysToHarvest, &
+                        GetCrop_DaysToHIo, &
                         GetCrop_DaysToSenescence, &
                         GetCrop_DeterminancyLinked, &
                         GetCrop_dHIdt, &
@@ -49,6 +50,7 @@ use ac_global, only:    AdjustSizeCompartments, &
                         GetCrop_GDDaysToFullCanopy, &
                         GetCrop_GDDaysToGermination, &
                         GetCrop_GDDaysToHarvest, &
+                        GetCrop_GDDaysToHIo, &
                         GetCrop_GDDaysToSenescence, &
                         GetCrop_GDDCDC, &
                         GetCrop_GDDCGC, &
@@ -405,6 +407,8 @@ use ac_global, only:    AdjustSizeCompartments, &
                         BMI_Rain_override_value, &
                         BMI_ETo_override_value
 use ac_inforesults, only:       WriteAssessmentSimulation
+use ac_preparefertilitysalinity, only: ReferenceCCxSaltStressRelationship, &
+                                       ReferenceStressBiomassRelationship
 use ac_kinds, only: dp, &
                     int8, &
                     int32, &
@@ -3977,7 +3981,8 @@ subroutine RelationshipsForFertilityAndSaltStress()
 
     ! 1.a Soil fertility (Coeffb0,Coeffb1,Coeffb2 : Biomass-Soil Fertility stress)
     if (GetCrop_StressResponse_Calibrated()) then
-        call StressBiomassRelationship(GetCrop_DaysToCCini(), GetCrop_GDDaysToCCini(), &
+        call ReferenceStressBiomassRelationship(GetCrop_DaysToCCini(), &
+                                  GetCrop_GDDaysToCCini(), &
                                   GetCrop_DaysToGermination(), &
                                   GetCrop_DaysToFullCanopy(), &
                                   GetCrop_DaysToSenescence(), &
@@ -3997,11 +4002,13 @@ subroutine RelationshipsForFertilityAndSaltStress()
                                   GetCrop_Tbase(), &
                                   GetCrop_Tupper(), GetSimulParam_Tmin(), &
                                   GetSimulParam_Tmax(), GetCrop_GDtranspLow(), &
-                                  GetCrop_WP(), GetCrop_dHIdt(), GetCO2i(), &
+                                  GetCrop_WP(), GetCrop_dHIdt(), &
                                   GetCrop_Day1(), GetCrop_DeterminancyLinked(), &
                                   GetCrop_StressResponse(),GetCrop_subkind(), &
                                   GetCrop_ModeCycle(), Coeffb0_temp, Coeffb1_temp, &
-                                  Coeffb2_temp, X10, X20, X30, X40, X50, X60, X70)
+                                  Coeffb2_temp, X10, X20, X30, X40, X50, X60, X70, &
+                                  GetCrop_GDDaysToFlowering(), GetCrop_GDDLengthFlowering(), &
+                                  GetCrop_GDDaysToHIo(), GetCrop_Planting(), GetCrop_DaysToHIo())
         call SetCoeffb0(Coeffb0_temp)
         call SetCoeffb1(Coeffb1_temp)
         call SetCoeffb2(Coeffb2_temp)
@@ -4038,7 +4045,7 @@ subroutine RelationshipsForFertilityAndSaltStress()
 
     ! 2. soil salinity (Coeffb0Salt,Coeffb1Salt,Coeffb2Salt : CCx/KsSto - Salt stress)
     if (GetSimulation_SalinityConsidered() .eqv. .true.) then
-        call CCxSaltStressRelationship(GetCrop_DaysToCCini(), &
+        call ReferenceCCxSaltStressRelationship(GetCrop_DaysToCCini(), &
                                   GetCrop_GDDaysToCCini(), &
                                   GetCrop_DaysToGermination(), &
                                   GetCrop_DaysToFullCanopy(), &
@@ -4061,12 +4068,13 @@ subroutine RelationshipsForFertilityAndSaltStress()
                                   GetCrop_Tbase(), GetCrop_Tupper(), &
                                   GetSimulParam_Tmin(), GetSimulParam_Tmax(), &
                                   GetCrop_GDtranspLow(), GetCrop_WP(), &
-                                  GetCrop_dHIdt(), GetCO2i(), GetCrop_Day1(), &
+                                  GetCrop_dHIdt(), GetCrop_Day1(), &
                                   GetCrop_DeterminancyLinked(), &
                                   GetCrop_subkind(), GetCrop_ModeCycle(), &
                                   GetCrop_CCsaltDistortion(),Coeffb0Salt_temp, &
                                   Coeffb1Salt_temp, Coeffb2Salt_temp, X10, X20, X30, &
-                                  X40, X50, X60, X70, X80, X90)
+                                  X40, X50, X60, X70, X80, X90, &
+                                  GetCrop_GDDaysToHIo(), GetCrop_Planting(), GetCrop_DaysToHIo())
         call SetCoeffb0Salt(Coeffb0Salt_temp)
         call SetCoeffb1Salt(Coeffb1Salt_temp)
         call SetCoeffb2Salt(Coeffb2Salt_temp)
@@ -4910,18 +4918,25 @@ subroutine InitializeSimulationRunPart1()
     end if
 
     ! Maximum sum Kc (for reduction WP in season if soil fertility stress)
-    call SetSumKcTop(SeasonalSumOfKcPot(GetCrop_DaysToCCini(), &
-            GetCrop_GDDaysToCCini(), GetCrop_DaysToGermination(), &
-            GetCrop_DaysToFullCanopy(), GetCrop_DaysToSenescence(), &
-            GetCrop_DaysToHarvest(), GetCrop_DaysToHarvest(), GetCrop_GDDaysToGermination(), &
-            GetCrop_GDDaysToFullCanopy(), GetCrop_GDDaysToSenescence(), &
-            GetCrop_GDDaysToHarvest(), GetCrop_CCo(), GetCrop_CCx(), &
-            GetCrop_CGC(), GetCrop_GDDCGC(), GetCrop_CDC(), GetCrop_GDDCDC(), &
-            GetCrop_KcTop(), GetCrop_KcDeclineCumul(), real(GetCrop_CCEffectEvapLate(),kind=dp), &
-            GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), &
-            GetSimulParam_Tmax(), GetCrop_GDtranspLow(), GetCO2i(), &
-            GetCrop_ModeCycle(), .false.))
-    call SetSumKcTopStress( GetSumKcTop() * GetFracBiomassPotSF())
+    if ((GetCrop_StressResponse_Calibrated() .eqv. .true.) .and. &
+        (GetManagement_FertilityStress() > 0_int8)) then
+        call SetSumKcTop(SeasonalSumOfKcPot(GetCrop_DaysToCCini(), &
+                GetCrop_GDDaysToCCini(), GetCrop_DaysToGermination(), &
+                GetCrop_DaysToFullCanopy(), GetCrop_DaysToSenescence(), &
+                GetCrop_DaysToHarvest(), GetCrop_DaysToHarvest(), &
+                GetCrop_GDDaysToGermination(), &
+                GetCrop_GDDaysToFullCanopy(), GetCrop_GDDaysToSenescence(), &
+                GetCrop_GDDaysToHarvest(), GetCrop_CCo(), GetCrop_CCx(), &
+                GetCrop_CGC(), GetCrop_GDDCGC(), GetCrop_CDC(), GetCrop_GDDCDC(), &
+                GetCrop_KcTop(), GetCrop_KcDeclineCumul(), real(GetCrop_CCEffectEvapLate(),kind=dp), &
+                GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), &
+                GetSimulParam_Tmax(), GetCrop_GDtranspLow(), GetCO2i(), &
+                GetCrop_ModeCycle(), .true.))
+        call SetSumKcTopStress( GetSumKcTop() * GetFracBiomassPotSF())
+    else
+        call SetSumKcTop(real(undef_int, kind=dp))
+        call SetSumKcTopStress(real(undef_int, kind=dp))
+    end if
     call SetSumKci(0._dp)
 
     ! 7. weed infestation and self-thinning of herbaceous perennial forage crops

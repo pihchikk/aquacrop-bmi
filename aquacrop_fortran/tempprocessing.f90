@@ -297,6 +297,11 @@ implicit none
 logical :: TemperatureFilefull_exists
 real(dp), dimension(:), allocatable :: Tmin, Tmax  !! (daily) temperature data
 
+integer :: fTnxReference  ! file handle
+integer :: fTnxReference_iostat  ! IO status
+integer :: fTnxReference365Days  ! file handle
+integer :: fTnxReference365Days_iostat  ! IO status
+
 
 contains
 
@@ -971,6 +976,310 @@ subroutine GetMonthlyTemperatureDataSetFromTnxReferenceFile(Monthi, TminDataSet,
         c = (11._dp*C1-7._dp*C2+2._dp*C3)/(6._dp*30._dp)
     end subroutine GetInterpolationParameters
 end subroutine GetMonthlyTemperatureDataSetFromTnxReferenceFile
+
+
+! Generic file-open/write helpers for the fTnxReference*/fTnxReference365Days*
+! wrappers below. Same open/write semantics as the existing open_file/
+! write_file pair in run.f90 (mode 'r'/'a'/'w', iostat passthrough); kept as
+! private copies here rather than imported from ac_run to avoid a circular
+! module dependency (ac_run already depends on ac_tempprocessing).
+
+subroutine reference_open_file(fhandle, filename, mode, iostat)
+    integer, intent(out) :: fhandle
+    character(len=*), intent(in) :: filename
+    character, intent(in) :: mode
+    integer, intent(out) :: iostat
+
+    logical :: file_exists
+
+    inquire(file=filename, exist=file_exists)
+
+    if (mode == 'r') then
+        open(newunit=fhandle, file=trim(filename), status='old', &
+             action='read', iostat=iostat)
+    elseif (mode == 'a') then
+        if (file_exists) then
+            open(newunit=fhandle, file=trim(filename), status='old', &
+                 position='append', action='write', iostat=iostat)
+        else
+            open(newunit=fhandle, file=trim(filename), status='new', &
+                 action='write', iostat=iostat)
+        end if
+    elseif (mode == 'w') then
+        open(newunit=fhandle, file=trim(filename), status='replace', &
+             action='write', iostat=iostat)
+    end if
+end subroutine reference_open_file
+
+
+subroutine reference_write_file(fhandle, line, advance, iostat)
+    integer, intent(in) :: fhandle
+    character(len=*), intent(in) :: line
+    logical, intent(in) :: advance
+    integer, intent(out) :: iostat
+
+    character(len=:), allocatable :: advance_str
+
+    if (advance) then
+        advance_str = 'yes'
+    else
+        advance_str = 'no'
+    end if
+
+    write(fhandle, '(a)', advance=advance_str, iostat=iostat) line
+end subroutine reference_write_file
+
+
+! fTnxReference
+
+subroutine fTnxReference_open(filename, mode)
+    !! Opens the given file, assigning it to the 'fTnxReference' file handle.
+    character(len=*), intent(in) :: filename
+    character, intent(in) :: mode
+
+    call reference_open_file(fTnxReference, filename, mode, fTnxReference_iostat)
+end subroutine fTnxReference_open
+
+
+subroutine fTnxReference_write(line, advance_in)
+    !! Writes the given line to the fTnxReference file.
+    character(len=*), intent(in) :: line
+    logical, intent(in), optional :: advance_in
+
+    logical :: advance
+
+    if (present(advance_in)) then
+        advance = advance_in
+    else
+        advance = .true.
+    end if
+    call reference_write_file(fTnxReference, line, advance, fTnxReference_iostat)
+end subroutine fTnxReference_write
+
+
+subroutine fTnxReference_close()
+    close(fTnxReference)
+end subroutine fTnxReference_close
+
+
+! fTnxReference365Days
+
+subroutine fTnxReference365Days_open(filename, mode)
+    !! Opens the given file, assigning it to the 'fTnxReference365Days' file handle.
+    character(len=*), intent(in) :: filename
+    character, intent(in) :: mode
+
+    call reference_open_file(fTnxReference365Days, filename, mode, fTnxReference365Days_iostat)
+end subroutine fTnxReference365Days_open
+
+
+subroutine fTnxReference365Days_write(line, advance_in)
+    !! Writes the given line to the fTnxReference365Days file.
+    character(len=*), intent(in) :: line
+    logical, intent(in), optional :: advance_in
+
+    logical :: advance
+
+    if (present(advance_in)) then
+        advance = advance_in
+    else
+        advance = .true.
+    end if
+    call reference_write_file(fTnxReference365Days, line, advance, fTnxReference365Days_iostat)
+end subroutine fTnxReference365Days_write
+
+
+subroutine fTnxReference365Days_close()
+    close(fTnxReference365Days)
+end subroutine fTnxReference365Days_close
+
+
+subroutine CreateTnxReferenceFile(TemperatureFile, TnxReferenceFile, TnxReferenceYear)
+    !! Computes the mean-monthly Tmin/Tmax reference climate from the
+    !! multi-year temperature record and saves it (12 monthly means) to
+    !! TnxReferenceFile plus the TminTnxReference12MonthsRun/
+    !! TmaxTnxReference12MonthsRun state.
+    !!
+    !! Ported from official v7.3 (tempprocessing.f90:3164-3361), restricted
+    !! to daily temperature records: every scenario in this project's test
+    !! matrix uses daily records exclusively (confirmed by reading each
+    !! Tnx file's own declared record type), so the 10-day and monthly
+    !! branches of official's algorithm are deliberately not implemented.
+    !! If a 10-day or monthly record is ever supplied, this fails loudly
+    !! via error stop below rather than silently producing wrong numbers.
+    character(len=*), intent(in) :: TemperatureFile
+    character(len=*), intent(in) :: TnxReferenceFile
+    integer(int32), intent(in) :: TnxReferenceYear
+
+    real(dp), dimension(12) :: MonthVal1, MonthVal2
+    character(len=:), allocatable :: FullName
+    integer(int32)   :: fhandle, rc
+    integer(int32) :: i, NrYears
+    integer(int32) :: Yeari, Monthi, MonthDays, Dayi
+    real(dp) :: SUM1, SUM2, Val1, Val2
+    integer(int32) :: DayNri, EndDayNr
+    logical :: EndMonth
+    integer(int32), dimension(12) :: MonthNrYears
+    character(len=:), allocatable :: TempString
+    character(len=1025) :: TempString2
+
+    ! 1a. Delete existing TnxReferenceFile and adjust TnxReferenceYear
+    FullName = trim(GetPathNameSimul()) // TnxReferenceFile
+    if (FileExists(FullName)) then
+        call unlink(FullName)
+        call SetTnxReferenceYear(2000)
+    end if
+    ! 1b. Delete existing TnxReference365Days.SIM
+    FullName = trim(GetPathNameSimul()) // 'TnxReference365Days.SIM'
+    if (FileExists(FullName)) then
+        call unlink(FullName)
+    end if
+    ! 1c. Delete existing TCropReference.SIM
+    FullName = trim(GetPathNameSimul()) // 'TCropReference.SIM'
+    if (FileExists(FullName)) then
+        call unlink(FullName)
+    end if
+
+
+    ! 2. Get Mean monthly data
+    if (TemperatureFile /= '(None)') then
+        if (GetTemperatureRecord_DataType() /= datatype_daily) then
+            error stop 'CreateTnxReferenceFile: 10-day/monthly reference-' // &
+                'climate generation not yet ported -- daily records only ' // &
+                '(see docs/bmi/FORTRAN_FORK_REFERENCE_CLIMATE_FIX.md)'
+        end if
+
+        ! 2.a Preparation
+        ! Get Number of Years
+        NrYears = GetTemperatureRecord_ToY() - GetTemperatureRecord_FromY() + 1
+        ! Get TnxReferenceYear
+        call SetTnxReferenceYear(roundc((GetTemperatureRecord_FromY()+GetTemperatureRecord_ToY())/2._dp,mold=1_int32))
+        if (GetTnxReferenceYear() == 1901) then
+            call SetTnxReferenceYear(2000)
+        end if
+        ! check number of years for each month
+        do Monthi = 1, 12
+            MonthNrYears(Monthi) = NrYears
+        end do
+        if (NrYears > 1) then
+            if (GetTemperatureRecord_FromM() > 1) then
+                do Monthi = 1, (GetTemperatureRecord_FromM()-1)
+                    MonthNrYears(Monthi) = MonthNrYears(Monthi) - 1
+                end do
+            end if
+            if (GetTemperatureRecord_ToM() < 12) then
+                do Monthi = 12, (GetTemperatureRecord_ToM()+1), -1
+                    MonthNrYears(Monthi) = MonthNrYears(Monthi) - 1
+                end do
+            end if
+        end if
+
+        ! initialize
+        do Monthi = 1, 12
+            MonthVal1(Monthi) = 0._dp ! Tmin data
+            MonthVal2(Monthi) = 0._dp ! Tmax data
+        end do
+        Yeari = GetTemperatureRecord_FromY()
+        Monthi = GetTemperatureRecord_FromM()
+        DayNri = GetTemperatureRecord_FromDayNr()
+        EndMonth = .false.
+        EndDayNr = undef_int
+        SUM1 = 0._dp
+        SUM2 = 0._dp
+        MonthDays = 0
+        ! EndDayNr = DayNr of last day in month
+        Dayi = DaysInMonth(Monthi)
+        if ((LeapYear(Yeari) .eqv. .true.) .and. (Monthi == 2)) then
+            Dayi = Dayi + 1
+        end if
+        call DetermineDayNr(Dayi, Monthi, Yeari, EndDayNr)
+
+        ! open temperature file
+        open(newunit=fhandle, file=trim(GetTemperatureFilefull()), &
+                     status='old', action='read', iostat=rc)
+        read(fhandle, *, iostat=rc) ! Description
+        read(fhandle, *, iostat=rc) ! Data type
+        read(fhandle, *, iostat=rc) ! Day
+        read(fhandle, *, iostat=rc) ! Month
+        read(fhandle, *, iostat=rc) ! Year
+        read(fhandle, *, iostat=rc) ! Title
+        read(fhandle, *, iostat=rc) ! Title
+        read(fhandle, *, iostat=rc) ! Title
+
+        ! 2.b Determine mean monthly data
+        do while (rc /= iostat_end)
+            ! read data
+            read(fhandle, *, iostat=rc) Val1, Val2 ! Tmin, Tmax
+            if (rc == iostat_end) exit
+            SUM1 = SUM1 + Val1 ! minimum temperature
+            SUM2 = SUM2 + Val2 ! maximum temperature
+            ! check end of month
+            MonthDays = MonthDays + 1
+            if (DayNri == EndDayNr) then
+                EndMonth = .true.
+            end if
+            if (rc == iostat_end) then
+                EndMonth = .true.
+            end if
+            ! End of Month
+            if (EndMonth .eqv. .true.) then
+                ! mean monthly values Tmin and Tmax
+                SUM1 = SUM1/real(MonthDays, kind=dp)
+                SUM2 = SUM2/real(MonthDays, kind=dp)
+                MonthVal1(Monthi) = MonthVal1(Monthi) + SUM1/real(MonthNrYears(Monthi),kind=dp) ! Tmin
+                MonthVal2(Monthi) = MonthVal2(Monthi) + SUM2/real(MonthNrYears(Monthi),kind=dp) ! Tmax
+                ! Next month
+                SUM1 = 0._dp
+                SUM2 = 0._dp
+                if (Monthi == 12) then
+                    Monthi = 1
+                    Yeari = Yeari + 1
+                else
+                    Monthi = Monthi + 1
+                end if
+                EndMonth = .false.
+                ! EndDayNr = DayNr of last day in month
+                MonthDays = 0
+                Dayi = DaysInMonth(Monthi)
+                if ((LeapYear(Yeari) .eqv. .true.) .and. (Monthi == 2)) then
+                    Dayi = Dayi + 1
+                end if
+                call DetermineDayNr(Dayi, Monthi, Yeari, EndDayNr)
+            end if
+            ! Next day, decade, month
+            DayNri = DayNri + 1
+        end do
+
+        ! close temperature file
+        close(fhandle)
+    end if
+    ! 3. Create and Save TnxReference File
+    if (TemperatureFile /= '(None)') then
+        ! Determine Name of TnxReference File
+        i = len(trim(TemperatureFile))
+        TempString = trim(TemperatureFile)
+        call SetTnxReferenceFile(TempString(:i-4) // 'Reference.Tnx')
+        FullName = trim(GetPathNameSimul()) // GetTnxReferenceFile()
+        call SetTnxReferenceFileFull(FullName)
+        ! Save mean monhtly data data
+        call fTnxReference_open(FullName, 'w')
+        call fTnxReference_write('Reference : ' // trim(GetTemperatureDescription()))
+        call fTnxReference_write('     3  : Monthly records (1=daily, 2=10-daily and 3=monthly data)')
+        call fTnxReference_write('     1  : First day of record (1, 11 or 21 for 10-day or 1 for months)')
+        call fTnxReference_write('     1  : First month of record')
+        call fTnxReference_write('  1901  : First year of record (1901 if not linked to a specific year)')
+        call fTnxReference_write('')
+        call fTnxReference_write('  Tmin (C)   TMax (C) ')
+        call fTnxReference_write('  =======================')
+        do Monthi = 1, 12
+            write(TempString2, '(2f10.2)') MonthVal1(Monthi), MonthVal2(Monthi)
+            call fTnxReference_write(trim(TempString2))
+            call SetTminTnxReference12MonthsRun_i(Monthi,real(roundc(100*MonthVal1(Monthi),mold=int32),kind=sp)/100._sp)
+            call SetTmaxTnxReference12MonthsRun_i(Monthi,real(roundc(100*MonthVal2(Monthi),mold=int32),kind=sp)/100._sp)
+        end do
+        call fTnxReference_close()
+    end if
+end subroutine CreateTnxReferenceFile
 
 
 integer(int32) function GrowingDegreeDays(ValPeriod, FirstDayPeriod, Tbase, &

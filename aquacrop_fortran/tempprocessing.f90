@@ -11,6 +11,8 @@ use ac_global , only: undef_int, &
                       SetTnxReferenceFileFull, &
                       GetTnxReferenceYear, &
                       SetTnxReferenceYear, &
+                      GetTminCropReferenceRun, &
+                      GetTmaxCropReferenceRun, &
                       GetTminCropReferenceRun_i, &
                       GetTmaxCropReferenceRun_i, &
                       SetTminCropReferenceRun_i, &
@@ -60,6 +62,7 @@ use ac_global , only: undef_int, &
                       LoadProfile, &
                       LoadProfileProcessing, &
                       LoadClim, &
+                      SumCalendarDaysReferenceTnx, &
                       LoadIrriScheduleInfo,&
                       LoadManagement, &
                       GetECiAqua,&
@@ -1904,7 +1907,7 @@ subroutine AdjustCalendarDays(PlantDayNr, InfoCropType,&
     if (Succes) then
         CGC = (real(GDDL12, kind=dp)/real(D12, kind=dp)) * GDDCGC
         call GDDCDCToCDC(PlantDayNr, D123, GDDL123, GDDHarvest,&
-               CCx, GDDCDC, Tbase, Tupper, tmp_NoTempFileTMin, tmp_NoTempFileTMax, CDC)
+               CCx, GDDCDC, Tbase, Tupper, tmp_NoTempFileTMin, tmp_NoTempFileTMax, CDC, .false.)
         call DetermineLengthGrowthStages(CCo, CCx, CDC, D0, DHarvest,&
                IsCGCGiven, TheDaysToCCini, &
                ThePlanting, D123, StLength, D12, CGC)
@@ -2012,7 +2015,7 @@ end subroutine AdjustCalendarCrop
 
 subroutine GDDCDCToCDC(PlantDayNr, D123, GDDL123, &
                        GDDHarvest, CCx, GDDCDC, Tbase, Tupper, &
-                       NoTempFileTMin, NoTempFileTMax, CDC)
+                       NoTempFileTMin, NoTempFileTMax, CDC, Reference)
     integer(int32), intent(in) :: PlantDayNr
     integer(int32), intent(in) :: D123
     integer(int32), intent(in) :: GDDL123
@@ -2021,9 +2024,10 @@ subroutine GDDCDCToCDC(PlantDayNr, D123, GDDL123, &
     real(dp), intent(in) :: GDDCDC
     real(dp), intent(in) :: Tbase
     real(dp), intent(in) :: Tupper
-    real(dp), intent(inout) :: NoTempFileTMin
-    real(dp), intent(inout) :: NoTempFileTMax
+    real(dp), intent(in) :: NoTempFileTMin
+    real(dp), intent(in) :: NoTempFileTMax
     real(dp), intent(inout) :: CDC
+    logical, intent(in) :: Reference
 
     integer(int32) :: ti, GDDi
     real(dp) :: CCi
@@ -2042,8 +2046,13 @@ subroutine GDDCDCToCDC(PlantDayNr, D123, GDDL123, &
                  * (exp(real(GDDi,kind=dp)*(GDDCDC*3.33_dp)/(CCx+2.29_dp))-1._dp) )
        ! CC at time ti
     end if
-    ti = SumCalendarDays(GDDi, (PlantDayNr+D123),&
-              Tbase, Tupper, NoTempFileTMin, NoTempFileTMax)
+    if (Reference) then
+        ti = SumCalendarDaysReferenceTnx(GDDi, (PlantDayNr+D123),&
+                (PlantDayNr+D123), Tbase, Tupper, NoTempFileTMin, NoTempFileTMax)
+    else
+        ti = SumCalendarDays(GDDi, (PlantDayNr+D123),&
+                  Tbase, Tupper, NoTempFileTMin, NoTempFileTMax)
+    end if
     if (ti > 0) then
         CDC = (((CCx+2.29_dp)/real(ti, kind=dp)) &
                 * log(1._dp + ((1._dp-CCi/CCx)/0.05_dp)))/3.33_dp
@@ -3052,7 +3061,7 @@ end subroutine BTransferPeriod
 
 
 real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
-            L0, L12, L12SF, L123, L1234, LFlor, &
+            L0, L12, L12SF, L123, L1234, Lend, LFlor, &
             GDDL0, GDDL12, GDDL12SF, GDDL123, GDDL1234, &
             WPyield, DaysYieldFormation, tSwitch, CCo, CCx, &
             CGC, GDDCGC, CDC, GDDCDC, KcTop, KcDeclAgeing, &
@@ -3060,7 +3069,8 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
             TDayMin, TDayMax, GDtranspLow, RatDGDD, SumKcTop, &
             StressInPercent, StrResRedCGC, StrResRedCCx, StrResRedWP, &
             StrResRedKsSto, WeedStress, DeltaWeedStress, StrResCDecline, &
-            ShapeFweed, TheModeCycle, FertilityStressOn, TestRecord)
+            ShapeFweed, TheModeCycle, FertilityStressOn, ReferenceClimate, &
+            TestRecord)
      integer(int32), intent(in) :: TheDaysToCCini
      integer(int32), intent(in) :: TheGDDaysToCCini
      integer(int32), intent(in) :: L0
@@ -3068,6 +3078,7 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
      integer(int32), intent(in) :: L12SF
      integer(int32), intent(in) :: L123
      integer(int32), intent(in) :: L1234
+     integer(int32), intent(in) :: Lend
      integer(int32), intent(in) :: LFlor
      integer(int32), intent(in) :: GDDL0
      integer(int32), intent(in) :: GDDL12
@@ -3106,6 +3117,7 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
      real(dp), intent(in) :: ShapeFweed
      integer(intEnum), intent(in) :: TheModeCycle
      logical, intent(in) :: FertilityStressOn
+     logical, intent(in) :: ReferenceClimate
      logical, intent(in) :: TestRecord
 
      real(dp), parameter :: EToStandard = 5._dp
@@ -3116,6 +3128,7 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
                  CCxWitheredForB, TpotForB, EpotTotForB, SumKCi,&
                  fSwitch, WPi, SumBnor, SumKcTopSF, fCCx
      integer(int32) :: Dayi, DayCC, Tadj, GDDTadj
+     integer(int32) :: i
      real(dp) :: CCoadj, CCxadj, CDCadj, GDDCDCadj, CCw, CCtotStar, CCwStar
      real(dp) :: SumGDDfromDay1, SumGDDforPlot, CCinitial,&
                  DayFraction, GDDayFraction, fWeed, WeedCorrection
@@ -3147,9 +3160,15 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
      end if
 
      ! 2. Open Temperature file
-     if (GetTemperatureFile() /= '(None)') then
-         open(newunit=fTemp, file=trim(GetPathNameSimul()//'TCrop.SIM'), &
-                      status='old', action='read', iostat=rc)
+     if ((GetTemperatureFile() /= '(None)') .and. &
+         (GetTemperatureFile() /= '(External)')) then
+        if (ReferenceClimate .eqv. .true.) then
+            open(newunit=fTemp, file=trim(GetPathNameSimul()//'TCropReference.SIM'), &
+                 status='old', action='read', iostat=rc)
+        else
+            open(newunit=fTemp, file=trim(GetPathNameSimul()//'TCrop.SIM'), &
+                 status='old', action='read', iostat=rc)
+        end if
      end if
 
      ! 3. Initialize
@@ -3217,14 +3236,28 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
      end if
 
      ! 5. Calculate Bnormalized
-     do Dayi = 1, L1234
+     i = 0
+     do Dayi = 1, Lend
          ! 5.1 growing degrees for dayi
-         if (GetTemperatureFile() /= '(None)') then
-             read(fTemp, *, iostat=rc) Tndayi, Txdayi
-             GDDi = DegreesDay(Tbase, Tupper, Tndayi, Txdayi,&
+         if (GetTemperatureFile() == '(None)') then
+             GDDi = DegreesDay(Tbase, Tupper, TDayMin, TDayMax,&
+                               GetSimulParam_GDDMethod())
+         elseif (GetTemperatureFile() == '(External)') then
+             i = i + 1
+             if (i == size(GetTminCropReferenceRun())) then
+                 i = 1
+             end if
+             Tndayi = real(GetTminCropReferenceRun_i(i), kind=dp)
+             Txdayi = real(GetTmaxCropReferenceRun_i(i), kind=dp)
+             GDDi = DegreesDay(Tbase, Tupper, Tndayi, Txdayi, &
                                GetSimulParam_GDDMethod())
          else
-             GDDi = DegreesDay(Tbase, Tupper, TDayMin, TDayMax,&
+             read(fTemp, *, iostat=rc) Tndayi, Txdayi
+             if ((rc == iostat_end) .and. (ReferenceClimate .eqv. .true.)) then
+                 rewind(fTemp)
+                 read(fTemp, *, iostat=rc) Tndayi, Txdayi
+             end if
+             GDDi = DegreesDay(Tbase, Tupper, Tndayi, Txdayi,&
                                GetSimulParam_GDDMethod())
          end if
          if (TheModeCycle == modeCycle_GDDays) then
@@ -3406,7 +3439,8 @@ real(dp) function Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
      enddo
 
      ! 4. Close Temperature file
-     if (GetTemperatureFile() /= '(None)') then
+     if ((GetTemperatureFile() /= '(None)') .and. &
+         (GetTemperatureFile() /= '(External)')) then
          close(fTemp)
      end if
 
@@ -3477,11 +3511,11 @@ real(dp) function BiomassRatio(TempDaysToCCini, TempGDDaysToCCini,&
     ! 1. Initialize
     ! 1 - a. Maximum sum Kc
     SumKcTop = SeasonalSumOfKcPot(TempDaysToCCini, TempGDDaysToCCini,&
-        TempL0, TempL12, TempL123, TempHarvest, TempGDDL0, TempGDDL12,&
+        TempL0, TempL12, TempL123, TempHarvest, TempHarvest, TempGDDL0, TempGDDL12,&
         TempGDDL123, TempGDDHarvest, TempCCo, TempCCx, TempCGC,&
         TempGDDCGC, TempCDC, TempGDDCDC, TempKc, TempKcDecline, TempCCeffect,&
         TempTbase, TempTupper, TempTmin, TempTmax, TempGDtranspLow, CO2iLocal,&
-        TempModeCycle)
+        TempModeCycle, .false.)
     ! 1 - b. Prepare for growing degree days
     RatDGDD = 1._dp
     if ((TempModeCycle == modeCycle_GDDays) .and. (SFInfoStress > 0_int8) &
@@ -3505,7 +3539,7 @@ real(dp) function BiomassRatio(TempDaysToCCini, TempGDDaysToCCini,&
 
     ! 2. potential biomass - no soil fertiltiy stress - no weed stress
     SumBPot = Bnormalized(TempDaysToCCini, TempGDDaysToCCini,&
-        TempL0, TempL12, TempL12, TempL123, TempHarvest, TempFlower,&
+        TempL0, TempL12, TempL12, TempL123, TempHarvest, TempHarvest, TempFlower,&
         TempGDDL0, TempGDDL12, TempGDDL12, TempGDDL123, TempGDDHarvest,&
         TempWPy, DaysYieldFormation, tSwitch,&
         TempCCo, TempCCx, TempCGC, TempGDDCGC, TempCDC, TempGDDCDC,&
@@ -3513,11 +3547,11 @@ real(dp) function BiomassRatio(TempDaysToCCini, TempGDDaysToCCini,&
         TempTbase, TempTupper, TempTmin, TempTmax, TempGDtranspLow, 1._dp,&
         SumKcTop, 0_int8, 0_int8, 0_int8, 0_int8, 0_int8, 0_int8,&
         0, 0._dp, -0.01_dp, &
-        TempModeCycle, FertilityStressOn, .false.)
+        TempModeCycle, FertilityStressOn, .false., .false.)
 
     ! 3. potential biomass - soil fertiltiy stress and weed stress
     SumBSF = Bnormalized(TempDaysToCCini, TempGDDaysToCCini,&
-        TempL0, TempL12, L12SF, TempL123, TempHarvest, TempFlower,&
+        TempL0, TempL12, L12SF, TempL123, TempHarvest, TempHarvest, TempFlower,&
         TempGDDL0, TempGDDL12, GDDL12SF, TempGDDL123, TempGDDHarvest, &
         TempWPy, DaysYieldFormation, tSwitch,&
         TempCCo, TempCCx, TempCGC, TempGDDCGC, TempCDC, TempGDDCDC,&
@@ -3526,7 +3560,7 @@ real(dp) function BiomassRatio(TempDaysToCCini, TempGDDaysToCCini,&
         SumKcTop, SFInfoStress, SFInfo%RedCGC, SFInfo%RedCCX, SFInfo%RedWP,&
         SFInfo%RedKsSto, WeedStress, DeltaWeedStress, &
         SFInfo%CDecline, ShapeFweed, TempModeCycle, &
-        FertilityStressOn, .false.)
+        FertilityStressOn, .false., .false.)
 
     BiomassRatio = SumBSF/SumBPot
 end function BiomassRatio
@@ -3614,10 +3648,10 @@ subroutine StressBiomassRelationship(TheDaysToCCini, TheGDDaysToCCini,&
     GDDL12SF = GDDL12 ! to calculate SumKcTop (no stress)
     ! Maximum sum Kc (no stress)
     SumKcTop = SeasonalSumOfKcPot(TheDaysToCCini, TheGDDaysToCCini,&
-        L0, L12, L123, L1234, GDDL0, GDDL12, GDDL123, GDDL1234,&
+        L0, L12, L123, L1234, L1234, GDDL0, GDDL12, GDDL123, GDDL1234,&
         CCo, CCx, CGC, GDDCGC, CDC, GDDCDC, KcTop, KcDeclAgeing,&
         CCeffectProcent, Tbase, Tupper, TDayMin, TDayMax, &
-        GDtranspLow, CO2Given, TheModeCycle)
+        GDtranspLow, CO2Given, TheModeCycle, .false.)
 
     ! Get PercentLagPhase (for estimate WPi during yield formation)
     if ((TheCropType == subkind_Tuber) .or. (TheCropType == subkind_grain)) then
@@ -3661,7 +3695,7 @@ subroutine StressBiomassRelationship(TheDaysToCCini, TheGDDaysToCCini,&
         end if
         ! biomass production
         BNor = Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
-                L0, L12, L12SF, L123, L1234, LFlor,&
+                L0, L12, L12SF, L123, L1234, L1234, LFlor,&
                 GDDL0, GDDL12, GDDL12SF, GDDL123, GDDL1234, WPyield, &
                 DaysYieldFormation, tSwitch, CCo, CCx, CGC, GDDCGC, CDC,&
                 GDDCDC, KcTop, KcDeclAgeing, CCeffectProcent, WPveg, CO2Given,&
@@ -3669,7 +3703,7 @@ subroutine StressBiomassRelationship(TheDaysToCCini, TheGDDaysToCCini,&
                 SumKcTop, SiPr, StressResponse%RedCGC, StressResponse%RedCCX,&
                 StressResponse%RedWP, StressResponse%RedKsSto, 0_int8, 0 ,&
                 StressResponse%CDecline, -0.01_dp, TheModeCycle, .true.,&
-                .false.)
+                .false., .false.)
         if (Si == 1) then
             BNor100 = BNor
             StressMatrix(1)%BioMProc = 100._dp
@@ -3826,10 +3860,10 @@ subroutine CCxSaltStressRelationship(TheDaysToCCini, TheGDDaysToCCini,&
     BNor100 = real(undef_int, kind=dp)
     ! Maximum sum Kc (no stress)
     SumKcTop = SeasonalSumOfKcPot(TheDaysToCCini, TheGDDaysToCCini,&
-        L0, L12, L123, L1234, GDDL0, GDDL12, GDDL123, GDDL1234,&
+        L0, L12, L123, L1234, L1234, GDDL0, GDDL12, GDDL123, GDDL1234,&
         CCo, CCx, CGC, GDDCGC, CDC, GDDCDC, KcTop, KcDeclAgeing, &
         CCeffectProcent,Tbase, Tupper, TDayMin, TDayMax, GDbioLow, &
-        CO2Given, TheModeCycle)
+        CO2Given, TheModeCycle, .false.)
     ! Get PercentLagPhase (for estimate WPi during yield formation)
     if ((TheCropType == subkind_Tuber) .or. (TheCropType == subkind_grain)) then
         ! DaysToFlowering corresponds with Tuberformation
@@ -3879,7 +3913,7 @@ subroutine CCxSaltStressRelationship(TheDaysToCCini, TheGDDaysToCCini,&
 
         ! biomass production
         BNor = Bnormalized(TheDaysToCCini, TheGDDaysToCCini,&
-                L0, L12, L12SS, L123, L1234, LFlor,&
+                L0, L12, L12SS, L123, L1234, L1234, LFlor,&
                 GDDL0, GDDL12, GDDL12SS, GDDL123, GDDL1234,&
                 WPyield, DaysYieldFormation, tSwitch,&
                 CCo, CCx, CGC, GDDCGC, CDC, GDDCDC,&
@@ -3888,7 +3922,7 @@ subroutine CCxSaltStressRelationship(TheDaysToCCini, TheGDDaysToCCini,&
                 SiPr, StressResponse%RedCGC, StressResponse%RedCCX,&
                 StressResponse%RedWP, StressResponse%RedKsSto, &
                 0_int8, 0, StressResponse%CDecline, -0.01_dp,&
-                TheModeCycle, .false., .false.)
+                TheModeCycle, .false., .false., .false.)
         if (Si == 1) then
             BNor100 = BNor
             BioMProc = 100._dp

@@ -1,10 +1,15 @@
 # Fork defect: Biomass/Yield/CC drift — root-caused (7th confirmed fork defect)
 
-**Status: ROOT-CAUSED. Not yet fixed — this is a substantial, multi-file
-missing feature, not a small patch, and porting it changes the physical
-interpretation of a core calculation input. Per this investigation's
-explicit stop-criteria, implementation was deliberately not attempted
-without review. See "Root cause" and "Why this is not fixed here" below.**
+**Status: FIXED (with a caveat).** The missing reference-climate feature
+this document root-caused has been ported and wired in — see
+`docs/bmi/FORTRAN_FORK_REFERENCE_CLIMATE_FIX.md` for the full port,
+verification, and a critical finding: the mechanism named below
+(`SumKcTop`/`SumKcTopStress`) is now proven byte-for-byte identical to
+official, but a **separate, previously-masked defect** was uncovered
+during verification (Ottawa/AlfOttawaGDD @ fertility=50 still shows a
+403-line diff, down from 496, starting DAP 104 instead of DAP 18) — not
+a gap in this fix, flagged separately for its own investigation. See
+that document's "New finding" section.
 
 ## How this was found
 

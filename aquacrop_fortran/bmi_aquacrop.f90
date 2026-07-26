@@ -12,6 +12,13 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      ! Weather getters/setters for Phase 1
                      GetRain, SetRain, GetETo, SetETo, &
                      GetTmin, SetTmin, GetTmax, SetTmax, &
+                     ! GDD accumulation, needed to correct SumGDD/SumGDDfromDay1
+                     ! in lockstep with a temperature override (see
+                     ! BMI_CorrectGDDayiForTemperatureOverride)
+                     GetCrop_Tbase, GetCrop_Tupper, GetCrop_Day1, &
+                     GetSimulParam_GDDMethod, DegreesDay, &
+                     GetSimulation_SumGDD, SetSimulation_SumGDD, &
+                     GetSimulation_SumGDDfromDay1, SetSimulation_SumGDDfromDay1, &
                      GetIrriMethod, SetIrriMethod, & ! handadded 19:59 11.11.25
                      GetSimulation, & ! Phase 5: Get simulation struct for DayAnaero
                      GetRootingDepth, & ! Phase 4: Rooting depth
@@ -42,6 +49,7 @@ use ac_global, only: GetCCiActual, GetSumWaBal_Biomass, &
                      BMI_Infil_override_value, &
                      SetZiAqua, SetECiAqua
 use ac_run, only: BMI_SimulateOneDay, GetDayNri, &
+                  GetGDDayi, SetGDDayi, &
                   GetStressTot_Temp, GetStressTot_Exp, GetStressTot_Sto, GetStressTot_Salt, &
                   GetSumWaBal_Tact, GetSumWaBal_Eact, GetSumWaBal_BiomassPot, & ! Phase 4
                   GetPreviousSum_Irrigation, SetPreviousSum_Irrigation, & ! Phase 2
@@ -151,7 +159,7 @@ character(len=BMI_MAX_COMPONENT_NAME), target :: &
 
 ! Exchange items
 integer, parameter :: input_item_count = 16
-integer, parameter :: output_item_count = 31
+integer, parameter :: output_item_count = 33
 
 character(len=BMI_MAX_VAR_NAME), target, dimension(input_item_count) :: &
     input_items = (/ &
@@ -205,7 +213,9 @@ character(len=BMI_MAX_VAR_NAME), target, dimension(output_item_count) :: &
     'soil_infiltration~rate               ', &
     'air_evaporation                      ', &
     'air_transpiration~actual             ', &
-    'soil_water_capillary                 ' &
+    'soil_water_capillary                 ', &
+    'crop__gdd_cumulative                 ', &
+    'crop__gdd_cumulative_from_planting   ' &
     /)
 
 contains
@@ -282,7 +292,7 @@ end function aquacrop_component_name
 ! ------------------------------------------------------------------------
 
 function aquacrop_initialize(this, config_file) result(bmi_status)
-use ac_global, only: SetPathNameOutp, SetOutputName  
+use ac_global, only: SetPathNameOutp, SetOutputName
 class(bmi_aquacrop), intent(out) :: this
 character(len=*), intent(in) :: config_file
 integer :: bmi_status
@@ -623,6 +633,8 @@ case('management_bund-height')
     units = "m"
 case('management_weed-cover')
     units = "%"
+case('crop__gdd_cumulative', 'crop__gdd_cumulative_from_planting')
+    units = 'degC d'
 case('groundwater__depth')
     units = 'm'
 case('groundwater__ec')
@@ -774,6 +786,13 @@ case('plant_yield~standard')
     ! Get cumulative yield in tonnes/ha
     ! This is the harvestable yield (grain, tubers, etc.)
     dest(1) = real(GetSumWaBal_YieldPart(), c_double)
+case('crop__gdd_cumulative')
+    ! SumGDD: cumulative growing-degree-days, seeded and accumulated per
+    ! the same guards BMI_CorrectGDDayiForTemperatureOverride replicates
+    dest(1) = real(GetSimulation_SumGDD(), c_double)
+case('crop__gdd_cumulative_from_planting')
+    ! SumGDDfromDay1: cumulative growing-degree-days since planting
+    dest(1) = real(GetSimulation_SumGDDfromDay1(), c_double)
 case('soil_water_actual')
     ! Get root zone water content in mm
     ! Returns actual water content in the active root zone only
@@ -992,6 +1011,7 @@ case('air_temperature_minimum~day')
     BMI_Tmin_override_value = real(src(1), dp)
     BMI_has_Tmin_override = .true.
     call SetTmin(BMI_Tmin_override_value)
+    call BMI_CorrectGDDayiForTemperatureOverride()
     bmi_status = BMI_SUCCESS
     return
 case('air_temperature_maximal~day')
@@ -1000,6 +1020,7 @@ case('air_temperature_maximal~day')
     BMI_Tmax_override_value = real(src(1), dp)
     BMI_has_Tmax_override = .true.
     call SetTmax(BMI_Tmax_override_value)
+    call BMI_CorrectGDDayiForTemperatureOverride()
     bmi_status = BMI_SUCCESS
     return
 case('management_irrigation_method') ! hand added 20:02 11.11.25
@@ -1510,6 +1531,47 @@ end function aquacrop_set_at_indices_double
 ! ========================================================================
 ! Helper Functions
 ! ========================================================================
+
+subroutine BMI_CorrectGDDayiForTemperatureOverride()
+    !! Recomputes GDDayi from the current Tmin/Tmax (immediately after a
+    !! temperature set_value has written one of them) and applies the
+    !! resulting delta to SumGDD/SumGDDfromDay1, instead of leaving the
+    !! stale pre-override GDDayi's contribution in place until the next
+    !! SetGDDVariablesNextDay call.
+    !!
+    !! Guards intentionally mirror the two places that already accumulate
+    !! GDDayi into these sums:
+    !!   - SetGDDVariablesNextDay (run.f90), which runs for every day after
+    !!     the first and uses one guard for both sums: DayNri >= Crop_Day1.
+    !!   - InitializeSimulationRunPart2 (run.f90), which seeds day 0 and
+    !!     uses an asymmetric guard: SumGDDfromDay1 on DayNri >= Crop_Day1,
+    !!     but SumGDD only on the stricter DayNri == Crop_Day1. This matters
+    !!     only when the simulation's first day starts after the crop's own
+    !!     Day1 (a mid-season/linked-run start) -- the one case where a
+    !!     uniform ">=" correction on day 0 would add GDD to SumGDD that
+    !!     was never seeded there in the first place.
+    real(dp) :: old_GDDayi, new_GDDayi, delta_GDDayi
+    logical :: is_first_day
+
+    old_GDDayi = GetGDDayi()
+    new_GDDayi = DegreesDay(GetCrop_Tbase(), GetCrop_Tupper(), &
+                            GetTmin(), GetTmax(), GetSimulParam_GDDMethod())
+    call SetGDDayi(new_GDDayi)
+
+    if (GetDayNri() < GetCrop_Day1()) return
+
+    delta_GDDayi = new_GDDayi - old_GDDayi
+    call SetSimulation_SumGDDfromDay1(GetSimulation_SumGDDfromDay1() + delta_GDDayi)
+
+    is_first_day = (GetDayNri() == GetSimulation_FromDayNr())
+    if (is_first_day) then
+        if (GetDayNri() == GetCrop_Day1()) then
+            call SetSimulation_SumGDD(GetSimulation_SumGDD() + delta_GDDayi)
+        end if
+    else
+        call SetSimulation_SumGDD(GetSimulation_SumGDD() + delta_GDDayi)
+    end if
+end subroutine BMI_CorrectGDDayiForTemperatureOverride
 
 subroutine print_model_info(this)
 class(bmi_aquacrop), intent(in) :: this

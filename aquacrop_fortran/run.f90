@@ -6427,12 +6427,6 @@ subroutine InitializeTransferAssimilates(Bin, Bout, AssimToMobilize, &
     Bout = 0._dp
     FracAssim = 0._dp
     if (GetCrop_subkind() == subkind_Forage) then
-    if (GetDayNri() >= 41500 .and. GetDayNri() <= 41525) then
-    print *, "TEMPDEBUG2 DayNri=", GetDayNri(), "CCiActual=", GetCCiActual(), &
-        "CCxTotal=", GetCCxTotal(), "RedCCX=", GetSimulation_EffectStress_RedCCX(), &
-        "CCcut=", GetManagement_Cuttings_CCcut(), "AssimStored=", GetCrop_Assimilates_Stored(), &
-        "AssimPeriod=", GetCrop_Assimilates_Period()
-    end if
         ! only for perennial herbaceous forage crops
         FracAssim = 0._dp
         if (GetNoMoreCrop()) then
@@ -7103,7 +7097,7 @@ subroutine AdvanceOneTimeStep(WPi)
         call DetermineRootZoneWC(GetRootingDepth(), SWCtopSoilConsidered_temp)
         call SetSimulation_SWCtopSoilConsidered(SWCtopSoilConsidered_temp)
         ! temperature stress affecting crop transpiration
-        if (GetCCiActual() <= 0.0000001_dp) then
+        if (GetCCiActual() <= 0.000001_dp) then
              KsTr = 1._dp
         else
              KsTr = KsTemperature(0._dp, GetCrop_GDtranspLow(), GetGDDayi())
@@ -7600,7 +7594,7 @@ subroutine WriteDailyResults(DAP, WPi)
         end if
 
         ! 4. Air temperature stress
-        if (GetCCiActual() <= 0.0000001_dp) then
+        if (GetCCiActual() <= 0.000001_dp) then
             KsTr = 1._dp
         else
             KsTr = KsTemperature(0._dp, GetCrop_GDtranspLow(), GetGDDayi())
@@ -7613,7 +7607,7 @@ subroutine WriteDailyResults(DAP, WPi)
         end if
 
         ! 5. Relative cover of weeds
-        if (GetCCiActual() <= 0.0000001_dp) then
+        if (GetCCiActual() <= 0.000001_dp) then
             StrW = undef_int
         else
             StrW = roundc(GetWeedRCi(), mold=1)

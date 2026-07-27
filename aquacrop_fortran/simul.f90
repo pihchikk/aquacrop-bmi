@@ -1043,7 +1043,7 @@ subroutine DetermineBiomassAndYield(dayi, ETo, TminOnDay, TmaxOnDay, CO2i, &
           DiFlor = (dayi-1) - (GetSimulation_DelayedDays() + &
                             GetCrop_Day1() + GetCrop_DaysToFlowering())
           f1 = FractionPeriod(DiFlor)
-          if (abs(f1-f2) < 0.0000001_dp) then
+          if (abs(f1-f2) < 0.000001_dp) then
               F = 0._dp
           else
               F = (100._dp * ((f1+f2)/2._dp)/GetCrop_LengthFlowering())
@@ -4169,7 +4169,7 @@ subroutine PrepareStage1()
 
     Soil_temp = GetSoil()
 
-    if (GetSurfaceStorage() > 0.0000001_dp) then
+    if (GetSurfaceStorage() > 0.000001_dp) then
         call SetSimulation_EvapWCsurf(Soil_temp%REW*1._dp)
     else
         call SetSimulation_EvapWCsurf(GetRain() + GetIrrigation() - GetRunOff())
@@ -4450,7 +4450,7 @@ subroutine ExtractWaterFromEvapLayer(EvapToLose, Zact, Stg1)
         end if
         Ztot = Ztot + fracZ * (GetCompartment_Thickness(compi))
         if ((Compi >= GetNrCompartments()) &
-            .or. (abs(StillToExtract) < 0.0000001_dp) &
+            .or. (abs(StillToExtract) < 0.000001_dp) &
             .or. (Ztot >= 0.999999_dp*Zact)) exit loop
     end do loop
     if (Stg1) then
@@ -4476,7 +4476,7 @@ subroutine CalculateSoilEvaporationStage1()
         call ExtractWaterFromEvapLayer(GetSimulation_EvapWCsurf(), EvapZmin, &
                                                                        Stg1)
     end if
-    if (GetSimulation_EvapWCsurf() < 0.0000001_dp) then
+    if (GetSimulation_EvapWCsurf() < 0.000001_dp) then
         call PrepareStage2()
     end if
 end subroutine CalculateSoilEvaporationStage1
@@ -4797,7 +4797,7 @@ subroutine DetermineCCi(CCxTotal, CCoTotal, StressLeaf, FracAssim, &
             else
                 if (GetCCiPrev() < 0.97999_dp*CCxSF) then
                     call DetermineCGCadjusted(CGCadjusted)
-                    if (CGCadjusted > 0.00000001_dp) then
+                    if (CGCadjusted > 0.000001_dp) then
                         ! CGCSF or CGCadjusted > 0
                         Crop_CCxAdjusted_temp = GetCrop_CCxAdjusted()
                         call DetermineCCxAdjusted(Crop_CCxAdjusted_temp)
@@ -5646,12 +5646,12 @@ subroutine BUDGET_module(dayi, TargetTimeVal, TargetDepthVal, VirtualTimeCC, &
             call CalculateEvaporationSurfaceWater
         end if
         ! stage 1 evaporation
-        if ((abs(GetEpot() - GetEact()) > 0.0000001_dp) &
+        if ((abs(GetEpot() - GetEact()) > 0.000001_dp) &
             .and. (GetSimulation_EvapWCsurf() > 0._dp)) then
             call CalculateSoilEvaporationStage1()
         end if
         ! stage 2 evaporation
-        if (abs(GetEpot() - GetEact()) > 0.0000001_dp) then
+        if (abs(GetEpot() - GetEact()) > 0.000001_dp) then
             call CalculateSoilEvaporationStage2()
         end if
     end if

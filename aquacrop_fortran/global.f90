@@ -2662,7 +2662,7 @@ real(dp) function KsAny(Wrel, pULActual, pLLActual, ShapeFactor)
 
     pRelativeLLUL = (Wrel - pULActual_local)/(pLLActual - pULActual_local)
 
-    if (pRelativeLLUL <= 0._dp) then
+    if (pRelativeLLUL <= epsilon(0._dp)) then
         KsVal = 1._dp
     elseif (pRelativeLLUL >= 1._dp) then
         KsVal = 0._dp
@@ -8022,7 +8022,7 @@ subroutine CalculateETpot(DAP, L0, L12, L123, LHarvest, DayLastCut, CCi, &
         end if
 
         ! Correction for Air temperature stress
-        if ((CCiAdjusted <= 0.0000001_dp) &
+        if ((CCiAdjusted <= 0.000001_dp) &
             .or. (roundc(GDDayi, mold=1) < 0)) then
             KsTrCold = 1._dp
         else

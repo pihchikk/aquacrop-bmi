@@ -3453,7 +3453,7 @@ subroutine DetermineCCiGDD(CCxTotal, CCoTotal, &
             else
                 if (GetCCiPrev() < (0.97999_dp*CCxSF)) then
                     call DetermineGDDCGCadjusted(GDDCGCadjusted)
-                    if (GDDCGCadjusted > 0.00000001_dp) then
+                    if (GDDCGCadjusted > 0.000001_dp) then
                         ! Crop.GDDCGC or GDDCGCadjusted > 0
                         Crop_CCxAdjusted_temp = GetCrop_CCxAdjusted()
                         call DetermineCCxAdjusted(Crop_CCxAdjusted_temp)

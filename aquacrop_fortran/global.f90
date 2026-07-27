@@ -1060,6 +1060,16 @@ real(dp) :: Tmin ! degC
 
 logical :: EvapoEntireSoilSurface ! True of soil wetted by RAIN (false = IRRIGATION and fw < 1)
 logical :: PreDay, OutDaily
+logical :: HarvestNowPersisted
+    !! Cross-day cutting flag. Official threads this as an `intent(inout)`
+    !! parameter on `AdvanceOneTimeStep`, set by day N's own "13. Cuttings"
+    !! step and read by day N+1's "8. Transfer of Assimilates" step (which
+    !! runs first within the next call) -- a deliberate one-day lag, not an
+    !! artifact. A plain local variable inside `AdvanceOneTimeStep` cannot
+    !! reproduce that: it would be freshly (re)declared on every call, so
+    !! step 8 could never see a value step 13 set on a previous day. Reset
+    !! once per run in `FileManagement`/the BMI per-run setup, matching
+    !! where official's own local `HarvestNow` is declared and initialized.
 logical :: Out1Wabal
 logical :: Out2Crop
 logical :: Out3Prof
@@ -16140,6 +16150,21 @@ subroutine SetPreDay(PreDay_in)
 
     PreDay = PreDay_in
 end subroutine SetPreDay
+
+
+logical function GetHarvestNowPersisted()
+    !! Getter for the "HarvestNowPersisted" global variable.
+
+    GetHarvestNowPersisted = HarvestNowPersisted
+end function GetHarvestNowPersisted
+
+
+subroutine SetHarvestNowPersisted(HarvestNowPersisted_in)
+    !! Setter for the "HarvestNowPersisted" global variable.
+    logical, intent(in) :: HarvestNowPersisted_in
+
+    HarvestNowPersisted = HarvestNowPersisted_in
+end subroutine SetHarvestNowPersisted
 
 
 logical function GetOut1Wabal()

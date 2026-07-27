@@ -4,6 +4,8 @@ module ac_startunit
 
 use ac_global, only:    undef_int, &
 
+                        SetHarvestNowPersisted, &
+
                         GetPathNameSimul, &
 
                         FileExists, &
@@ -2378,6 +2380,11 @@ subroutine BMI_InitializeAquaCrop(config_file, status)
     call InitializeRunPart2(NrRun, TheProjectType)
 
     print *, "  InitializeRunPart2 completed"
+
+    ! Matches official's own local `HarvestNow = .false.` at the top of its
+    ! FileManagement (run once per run); the BMI entry point only ever
+    ! drives a single run per instance, so once here is equivalent.
+    call SetHarvestNowPersisted(.false.)
 
     print *, ""
 

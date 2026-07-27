@@ -385,6 +385,7 @@ use ac_global, only:    AdjustSizeCompartments, &
                         GetCCiActual, &
                         GetManagement_Cuttings_CCcut, &
                         GetPreDay, &
+                        GetHarvestNowPersisted, SetHarvestNowPersisted, &
                         GetSimulation_SWCtopSoilConsidered, &
                         CCiniTotalFromTimeToCCini, &
                         modeCycle_CalendarDays, &
@@ -6426,6 +6427,12 @@ subroutine InitializeTransferAssimilates(Bin, Bout, AssimToMobilize, &
     Bout = 0._dp
     FracAssim = 0._dp
     if (GetCrop_subkind() == subkind_Forage) then
+    if (GetDayNri() >= 41500 .and. GetDayNri() <= 41525) then
+    print *, "TEMPDEBUG2 DayNri=", GetDayNri(), "CCiActual=", GetCCiActual(), &
+        "CCxTotal=", GetCCxTotal(), "RedCCX=", GetSimulation_EffectStress_RedCCX(), &
+        "CCcut=", GetManagement_Cuttings_CCcut(), "AssimStored=", GetCrop_Assimilates_Stored(), &
+        "AssimPeriod=", GetCrop_Assimilates_Period()
+    end if
         ! only for perennial herbaceous forage crops
         FracAssim = 0._dp
         if (GetNoMoreCrop()) then
@@ -6780,7 +6787,6 @@ subroutine AdvanceOneTimeStep(WPi)
     real(dp), intent(inout) :: WPi
 
     real(dp) :: PotValSF, KsTr, TESTVALY, PreIrri, StressStomata, FracAssim
-    logical :: HarvestNow
     integer(int32) :: VirtualTimeCC, DayInSeason
     real(dp) :: SumGDDadjCC, RatDGDD, &
                 Biomass_temp, BiomassPot_temp, BiomassUnlim_temp, &
@@ -6806,10 +6812,12 @@ subroutine AdvanceOneTimeStep(WPi)
     logical :: WaterTableInProfile_temp, NoMoreCrop_temp
 
     ! HarvestNow is read (via InitializeTransferAssimilates at step 8) before
-    ! step 13 sets it for real; without this it's an uninitialized read whose
-    ! value depends on stack contents left by the caller, which differs
-    ! between the console daily loop and the BMI update() call chain.
-    HarvestNow = .false.
+    ! step 13 sets it for real -- official's design: a genuine one-day lag,
+    ! not an artifact (see AdvanceOneTimeStep's HarvestNow parameter in the
+    ! reference, threaded across calls by FileManagement's own loop). Kept
+    ! as GetHarvestNowPersisted()/SetHarvestNowPersisted() (global.f90)
+    ! rather than a local variable so step 8 of day N+1 actually sees the
+    ! value step 13 of day N set, instead of always seeing a fresh reset.
 
     ! 1. Get ETo
     if (GetEToFile() == '(None)') then
@@ -7034,7 +7042,7 @@ subroutine AdvanceOneTimeStep(WPi)
     Bout_temp = GetBout()
     call InitializeTransferAssimilates(Bin_temp, Bout_temp, &
           ToMobilize_temp, Bmobilized_temp, FracAssim, Store_temp, &
-          Mobilize_temp, HarvestNow)
+          Mobilize_temp, GetHarvestNowPersisted())
     call SetTransfer_ToMobilize(ToMobilize_temp)
     call SetTransfer_Bmobilized(Bmobilized_temp)
     call SetTransfer_Store(Store_temp)
@@ -7215,7 +7223,7 @@ subroutine AdvanceOneTimeStep(WPi)
 
     ! 13. Cuttings
     if (GetManagement_Cuttings_Considered()) then
-        HarvestNow = .false.
+        call SetHarvestNowPersisted(.false.)
         DayInSeason = GetDayNri() - GetCrop_Day1() + 1
         call SetSumInterval(GetSumInterval() + 1)
         call SetSumGDDcuts( GetSumGDDcuts() + GetGDDayi())
@@ -7228,7 +7236,7 @@ subroutine AdvanceOneTimeStep(WPi)
             end if
             if ((DayInSeason >= GetCutInfoRecord1_FromDay()) .and. &
                 (GetCutInfoRecord1_NoMoreInfo() .eqv. .false.)) then
-                HarvestNow = .true.
+                call SetHarvestNowPersisted(.true.)
                 call GetNextHarvest()
             end if
             if (GetManagement_Cuttings_FirstDayNr() /= undef_int) then
@@ -7245,27 +7253,27 @@ subroutine AdvanceOneTimeStep(WPi)
                 if ((GetSumInterval() >= GetCutInfoRecord1_IntervalInfo()) &
                      .and. (DayInSeason >= GetCutInfoRecord1_FromDay()) &
                      .and. (DayInSeason <= GetCutInfoRecord1_ToDay())) then
-                    HarvestNow = .true.
+                    call SetHarvestNowPersisted(.true.)
                 end if
             case (TimeCuttings_IntGDD)
                 if ((GetSumGDDcuts() >= GetCutInfoRecord1_IntervalGDD()) &
                      .and. (DayInSeason >= GetCutInfoRecord1_FromDay()) &
                      .and. (DayInSeason <= GetCutInfoRecord1_ToDay())) then
-                    HarvestNow = .true.
+                    call SetHarvestNowPersisted(.true.)
                 end if
             case (TimeCuttings_DryB)
                 if (((GetSumWabal_Biomass() - GetBprevSum()) >= &
                       GetCutInfoRecord1_MassInfo()) &
                      .and. (DayInSeason >= GetCutInfoRecord1_FromDay()) &
                      .and. (DayInSeason <= GetCutInfoRecord1_ToDay())) then
-                    HarvestNow = .true.
+                    call SetHarvestNowPersisted(.true.)
                 end if
             case (TimeCuttings_DryY)
                 if (((GetSumWabal_YieldPart() - GetYprevSum()) >= &
                       GetCutInfoRecord1_MassInfo()) &
                     .and. (DayInSeason >= GetCutInfoRecord1_FromDay()) &
                     .and. (DayInSeason <= GetCutInfoRecord1_ToDay())) then
-                    HarvestNow = .true.
+                    call SetHarvestNowPersisted(.true.)
                 end if
             case (TimeCuttings_FreshY)
                 ! OK if Crop.DryMatter = undef_int (not specified) HarvestNow
@@ -7275,11 +7283,11 @@ subroutine AdvanceOneTimeStep(WPi)
                      GetCutInfoRecord1_MassInfo()) &
                     .and. (DayInSeason >= GetCutInfoRecord1_FromDay()) &
                     .and. (DayInSeason <= GetCutInfoRecord1_ToDay())) then
-                    HarvestNow = .true.
+                    call SetHarvestNowPersisted(.true.)
                 end if
             end select
         end select
-        if (HarvestNow .eqv. .true.) then
+        if (GetHarvestNowPersisted() .eqv. .true.) then
             call SetNrCut(GetNrCut() + 1)
             call SetDayLastCut(DayInSeason)
             if (GetCCiPrev() > (GetManagement_Cuttings_CCcut()/100._dp)) then
@@ -7832,6 +7840,10 @@ subroutine FileManagement()
     real(dp) :: WPi
 
     WPi = 0._dp
+    ! Matches official's own local `HarvestNow = .false.` at the top of its
+    ! FileManagement (run once per run in a multi-run/linked project, so
+    ! this resets per run, not just once ever).
+    call SetHarvestNowPersisted(.false.)
     RepeatToDay = GetSimulation_ToDayNr()
 
     loop: do
